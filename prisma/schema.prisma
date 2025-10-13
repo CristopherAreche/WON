@@ -1,0 +1,167 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+/**
+ * === Enums del dominio ===
+ */
+enum Goal {
+  fat_loss
+  hypertrophy
+  strength
+  returning
+  general_health
+}
+
+enum Experience {
+  beginner
+  three_to_twelve_months
+  one_to_three_years
+  three_years_plus
+}
+
+enum Location {
+  home
+  gym
+}
+
+enum Equipment {
+  bodyweight
+  bands
+  dumbbells
+  barbell
+  machines
+}
+
+enum PlanSource {
+  ai
+  fallback
+}
+
+/**
+ * === Modelos de WON ===
+ */
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String?
+  passwordHash String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  onboarding         OnboardingAnswers?
+  plans              WorkoutPlan[]
+  accounts           Account[]
+  sessions           Session[]
+  authenticators     Authenticator[]
+  passwordResetTokens PasswordResetToken[]
+}
+
+model OnboardingAnswers {
+  userId            String      @id
+  user              User        @relation(fields: [userId], references: [id])
+  goal              Goal
+  experience        Experience
+  daysPerWeek       Int
+  minutesPerSession Int
+  equipment         Equipment[] // lista de enums (Postgres permite arrays)
+  injuries          String?
+  location          Location
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+}
+
+model WorkoutPlan {
+  id        String     @id @default(cuid())
+  userId    String
+  user      User       @relation(fields: [userId], references: [id])
+  summary   Json // { daysPerWeek, minutes, goal }
+  weeks     Int
+  schedule  Json // ["lun","mie","vie"]
+  days      Json // definición del plan por día
+  source    PlanSource
+  createdAt DateTime   @default(now())
+
+  @@index([userId])
+}
+
+/**
+ * === (Opcional) Si usarás Auth.js + Prisma Adapter, agrega estos modelos ===
+ * Si de momento prefieres JWT sin adapter, puedes omitirlos y añadirlos luego.
+ */
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Authenticator {
+  id                  String  @id @default(cuid())
+  userId              String
+  credentialID        String  @unique
+  provider            String
+  credentialPublicKey String
+  counter             Int
+  transports          String?
+  user                User    @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+}
+
+model PasswordResetToken {
+  id           String    @id @default(cuid())
+  userId       String
+  hashedToken  String    @unique
+  code         String    @db.VarChar(6)
+  expiresAt    DateTime
+  consumedAt   DateTime?
+  attempts     Int       @default(0)
+  ip           String?
+  userAgent    String?
+  createdAt    DateTime  @default(now())
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@index([hashedToken])
+  @@index([code, userId])
+}
