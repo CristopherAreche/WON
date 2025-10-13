@@ -4,7 +4,7 @@ import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { signIn } from "next-auth/react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useState } from "react";
 
@@ -41,6 +41,7 @@ const LoginSchema = z.object({
 });
 
 export default function LoginForm() {
+  const router = useRouter();
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const search = useSearchParams();
@@ -56,12 +57,16 @@ export default function LoginForm() {
 
   async function onSubmit(values: z.infer<typeof LoginSchema>) {
     setErrorMsg(null);
-    const res = await signIn("credentials", {
+    const result = await signIn("credentials", {
       ...values,
-      redirect: true,
-      callbackUrl,
+      redirect: false,
     });
-    // next-auth handles the redirect; if there was an error (in no-redirect mode) you would show it here.
+    
+    if (result?.ok) {
+      router.push(callbackUrl);
+    } else {
+      setErrorMsg("Invalid email or password. Please try again.");
+    }
   }
 
   return (

@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
 import { signIn } from "next-auth/react";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 // Utility function to prevent emoji and number input in name fields
 const preventInvalidNameInput = (e: React.KeyboardEvent) => {
@@ -61,6 +62,7 @@ const SignupSchema = z.object({
 });
 
 export default function SignupPage() {
+  const router = useRouter();
   const [fieldErrors, setFieldErrors] = useState<{
     name?: string;
     email?: string;
@@ -103,12 +105,17 @@ export default function SignupPage() {
       return;
     }
     // auto-login
-    await signIn("credentials", {
+    const result = await signIn("credentials", {
       email: values.email,
       password: values.password,
-      redirect: true,
-      callbackUrl: "/onboarding",
+      redirect: false,
     });
+    
+    if (result?.ok) {
+      router.push("/onboarding");
+    } else {
+      setFieldErrors({ general: "Account created but login failed. Please try logging in manually." });
+    }
   }
 
   return (
