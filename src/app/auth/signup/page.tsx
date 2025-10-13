@@ -56,7 +56,7 @@ const SignupSchema = z.object({
     .string()
     .min(1, "Confirm your password"),
 }).refine((data) => data.password === data.confirmPassword, {
-  message: "Passwords don't match",
+  message: "Passwords don&apos;t match",
   path: ["confirmPassword"],
 });
 

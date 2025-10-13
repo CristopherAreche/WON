@@ -84,7 +84,7 @@ export default function ForgotPasswordPage() {
             </h1>
 
             <p className="text-center text-sm text-gray-600 mb-2">
-              We've sent password reset instructions to
+              We&apos;ve sent password reset instructions to
             </p>
             <p className="text-center text-sm font-medium text-black">
               {getValues('email')}
@@ -93,7 +93,7 @@ export default function ForgotPasswordPage() {
             <div className="rounded-lg bg-blue-50 p-4">
               <div className="text-sm text-blue-700">
                 <p className="mb-2">
-                  If the email exists in our system, you'll receive a message with a 6-digit code and a reset link.
+                  If the email exists in our system, you&apos;ll receive a message with a 6-digit code and a reset link.
                 </p>
                 <p>
                   The code will expire in <strong>10 minutes</strong>.
@@ -139,7 +139,7 @@ export default function ForgotPasswordPage() {
             Forgot your password?
           </h1>
           <p className="text-center text-sm text-gray-600 mb-6">
-            Enter your email address and we'll send you a reset code.
+            Enter your email address and we&apos;ll send you a reset code.
           </p>
 
           <div>
