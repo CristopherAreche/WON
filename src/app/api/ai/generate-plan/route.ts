@@ -3,22 +3,7 @@ export const runtime = "nodejs";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import type { Prisma } from "@prisma/client";
-
-interface PlanSummary {
-  daysPerWeek: number;
-  minutes: number;
-  goal: string;
-}
-
-interface PlanDay {
-  id: string;
-  title: string;
-  blocks: Array<{
-    exerciseId: string;
-    sets: number;
-    reps: string;
-  }>;
-}
+import { aiWorkoutGenerator } from "@/lib/ai-workout-generator";
 
 export async function POST(req: Request) {
   try {
@@ -33,31 +18,18 @@ export async function POST(req: Request) {
         { status: 400 }
       );
 
-    // MOCK: construye un plan simple a partir de las respuestas
-    const plan = {
-      userId,
-      summary: {
-        daysPerWeek: ob.daysPerWeek,
-        minutes: ob.minutesPerSession,
-        goal: ob.goal,
-      },
-      weeks: 4,
-      schedule:
-        ob.daysPerWeek === 3
-          ? ["mon", "wed", "fri"]
-          : ["mon", "tue", "thu", "sat"],
-      days: [
-        {
-          id: "w1d1",
-          title: "Full-Body A",
-          blocks: [
-            { exerciseId: "ex_goblet_squat", sets: 3, reps: "8-10" },
-            { exerciseId: "ex_pushup", sets: 3, reps: "8-12" },
-            { exerciseId: "ex_one_arm_row_db", sets: 3, reps: "10/side" },
-          ],
-        },
-      ],
+    // Generate AI-powered workout plan
+    const userProfile = {
+      goal: ob.goal,
+      experience: ob.experience,
+      daysPerWeek: ob.daysPerWeek,
+      minutesPerSession: ob.minutesPerSession,
+      equipment: ob.equipment as Array<"bodyweight" | "bands" | "dumbbells" | "barbell" | "machines">,
+      injuries: ob.injuries || undefined,
+      location: ob.location,
     };
+
+    const plan = await aiWorkoutGenerator.generateWorkoutPlan(userProfile);
 
     const saved = await prisma.workoutPlan.create({
       data: {
@@ -65,7 +37,7 @@ export async function POST(req: Request) {
         summary: plan.summary as Prisma.InputJsonValue,
         weeks: plan.weeks,
         schedule: plan.schedule as Prisma.InputJsonValue,
-        days: plan.days as Prisma.InputJsonValue,
+        days: plan.days as unknown as Prisma.InputJsonValue,
         source: "ai",
       },
     });
