@@ -1,10 +1,11 @@
-export type AuditEventType = 
-  | 'PasswordResetRequested'
-  | 'PasswordResetVerified'
-  | 'PasswordResetSucceeded'
-  | 'PasswordResetFailed'
-  | 'PasswordResetRateLimited'
-  | 'PasswordResetLocked';
+/* eslint-disable @typescript-eslint/no-explicit-any */
+export type AuditEventType =
+  | "PasswordResetRequested"
+  | "PasswordResetVerified"
+  | "PasswordResetSucceeded"
+  | "PasswordResetFailed"
+  | "PasswordResetRateLimited"
+  | "PasswordResetLocked";
 
 export interface AuditEvent {
   event: AuditEventType;
@@ -17,7 +18,7 @@ export interface AuditEvent {
   timestamp: Date;
 }
 
-export function logAuditEvent(event: Omit<AuditEvent, 'timestamp'>) {
+export function logAuditEvent(event: Omit<AuditEvent, "timestamp">) {
   const auditEvent: AuditEvent = {
     ...event,
     timestamp: new Date(),
@@ -25,20 +26,20 @@ export function logAuditEvent(event: Omit<AuditEvent, 'timestamp'>) {
 
   // In production, you would send this to a proper logging service
   // For now, we'll use structured console logging
-  console.log('AUDIT_EVENT', JSON.stringify(auditEvent));
+  console.log("AUDIT_EVENT", JSON.stringify(auditEvent));
 
   // You could also save to database for compliance requirements
   // await prisma.auditLog.create({ data: auditEvent });
 }
 
 export function getClientInfo(request: Request) {
-  const forwarded = request.headers.get('x-forwarded-for');
-  const ip = forwarded ? forwarded.split(',')[0].trim() : 
-             request.headers.get('x-real-ip') || 
-             'unknown';
-  
-  const userAgent = request.headers.get('user-agent') || 'unknown';
-  
+  const forwarded = request.headers.get("x-forwarded-for");
+  const ip = forwarded
+    ? forwarded.split(",")[0].trim()
+    : request.headers.get("x-real-ip") || "unknown";
+
+  const userAgent = request.headers.get("user-agent") || "unknown";
+
   return { ip, userAgent };
 }
 
