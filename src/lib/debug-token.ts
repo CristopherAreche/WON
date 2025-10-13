@@ -1,6 +1,22 @@
 import { prisma } from './db';
 import * as argon2 from 'argon2';
 
+interface PasswordResetTokenWithUser {
+  id: string;
+  userId: string;
+  hashedToken: string;
+  code: string;
+  expiresAt: Date;
+  consumedAt: Date | null;
+  createdAt: Date;
+  email: string;
+  name: string | null;
+}
+
+interface PasswordResetTokenWithStatus extends PasswordResetTokenWithUser {
+  status: 'CONSUMED' | 'EXPIRED' | 'ACTIVE';
+}
+
 export async function debugTokenValidation(token: string, code: string) {
   console.log('\n🔍 DEBUG TOKEN VALIDATION');
   console.log('='.repeat(50));
@@ -18,7 +34,7 @@ export async function debugTokenValidation(token: string, code: string) {
     WHERE rt."consumedAt" IS NULL 
       AND rt."expiresAt" > NOW()
       AND rt."code" = ${code}
-  ` as Array<any>;
+  ` as Array<PasswordResetTokenWithUser>;
   
   console.log('Found tokens:', resetTokens.length);
   
@@ -38,7 +54,7 @@ export async function debugTokenValidation(token: string, code: string) {
       WHERE rt."code" = ${code}
       ORDER BY rt."createdAt" DESC
       LIMIT 3
-    ` as Array<any>;
+    ` as Array<PasswordResetTokenWithStatus>;
     
     console.log('All tokens with this code (including expired/consumed):');
     allTokensWithCode.forEach((t, i) => {
@@ -75,7 +91,7 @@ export async function debugTokenValidation(token: string, code: string) {
         };
       }
     } catch (error) {
-      console.log('    Token verification error:', error.message);
+      console.log('    Token verification error:', error instanceof Error ? error.message : String(error));
     }
   }
   

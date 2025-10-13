@@ -13,7 +13,7 @@ export interface AuditEvent {
   ip?: string;
   userAgent?: string;
   requestId?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, string | number | boolean | null>;
   timestamp: Date;
 }
 
