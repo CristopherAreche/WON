@@ -1,4 +1,5 @@
 // AI Workout Generation Service
+import { OpenAI } from 'openai';
 
 interface UserProfile {
   goal: "fat_loss" | "hypertrophy" | "strength" | "returning" | "general_health";
@@ -39,13 +40,12 @@ interface GeneratedWorkoutPlan {
 }
 
 export class AIWorkoutGenerator {
-  private openai: any;
+  private openai: OpenAI | null = null;
 
   constructor() {
     // Only initialize OpenAI if the API key exists
     if (process.env.OPENAI_API_KEY) {
       try {
-        const { OpenAI } = require('openai');
         this.openai = new OpenAI({
           apiKey: process.env.OPENAI_API_KEY,
         });
@@ -69,6 +69,10 @@ export class AIWorkoutGenerator {
   }
 
   private async generateWithAI(userProfile: UserProfile): Promise<GeneratedWorkoutPlan> {
+    if (!this.openai) {
+      throw new Error('OpenAI not initialized');
+    }
+    
     const prompt = this.createWorkoutPrompt(userProfile);
 
     const completion = await this.openai.chat.completions.create({
