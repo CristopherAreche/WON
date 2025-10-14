@@ -100,10 +100,10 @@ export default function Footer() {
             <span className="text-xs">Workouts</span>
           </div>
 
-          <button className="flex flex-col items-center space-y-1 p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-600 hover:text-black">
+          <Link href="/onboarding?returning=true" className="flex flex-col items-center space-y-1 p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-600 hover:text-black">
             <PlusIcon />
             <span className="text-xs">Add</span>
-          </button>
+          </Link>
 
           <div className="flex flex-col items-center space-y-1 p-2 rounded-lg text-gray-400 cursor-not-allowed">
             <ChartIcon />

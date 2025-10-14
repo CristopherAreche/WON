@@ -15,7 +15,11 @@ export default async function OnboardingPage() {
   });
   if (!user) redirect("/auth/login");
 
+
   return (
-    <OnboardingClient userId={user.id} userName={user.name ?? user.email} />
+    <OnboardingClient 
+      userId={user.id} 
+      userName={user.name ?? user.email} 
+    />
   );
 }

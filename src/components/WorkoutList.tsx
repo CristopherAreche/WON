@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 interface PlanSummary {
   goal?: string;
@@ -9,12 +9,27 @@ interface PlanSummary {
 }
 
 interface PlanDay {
+  id?: string;
   title?: string;
+  focus?: string;
+  estimatedDuration?: number;
   blocks?: Array<{
     exerciseId?: string;
+    name?: string;
     sets?: number;
     reps?: string;
+    rest?: string;
+    notes?: string;
   }>;
+}
+
+interface OnboardingData {
+  goal: string;
+  experience: string;
+  daysPerWeek: number;
+  minutesPerSession: number;
+  equipment: string[];
+  location: string;
 }
 
 interface Plan {
@@ -22,181 +37,129 @@ interface Plan {
   summary: PlanSummary;
   days: PlanDay[];
   createdAt: Date;
+  onboarding?: OnboardingData;
 }
 
 interface WorkoutListProps {
   plan: Plan;
+  onboarding?: OnboardingData;
 }
 
 interface WorkoutCardProps {
-  workout: PlanDay;
-  index: number;
-  onNameUpdate?: (newName: string, index: number) => void;
+  plan: Plan;
+  onboarding?: OnboardingData;
 }
 
-function WorkoutCard({ workout, index, onNameUpdate }: WorkoutCardProps) {
-  const [isEditing, setIsEditing] = useState(false);
-  const [editName, setEditName] = useState(
-    workout.title || `Workout ${index + 1}`
-  );
+function WorkoutCard({ plan, onboarding }: WorkoutCardProps) {
+  const router = useRouter();
 
-  const handleSave = () => {
-    if (!editName.trim()) return;
-    onNameUpdate?.(editName.trim(), index);
-    setIsEditing(false);
-  };
+  // Get workout image based on goal
+  const getWorkoutImage = () => {
+    if (!onboarding?.goal) return "🏃‍♂️";
 
-  const handleCancel = () => {
-    setEditName(workout.title || `Workout ${index + 1}`);
-    setIsEditing(false);
-  };
-
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") {
-      handleSave();
-    } else if (e.key === "Escape") {
-      handleCancel();
+    switch (onboarding.goal) {
+      case "fat_loss":
+        return "🔥";
+      case "hypertrophy":
+        return "💪";
+      case "strength":
+        return "🏋️";
+      case "returning":
+        return "🔄";
+      case "general_health":
+        return "❤️";
+      default:
+        return "🏃‍♂️";
     }
   };
 
-  // Get workout image based on workout type or use default
-  const getWorkoutImage = (title?: string) => {
-    const workoutType = title?.toLowerCase() || "";
-
-    if (workoutType.includes("full") || workoutType.includes("body")) {
-      return "🏋️";
-    } else if (workoutType.includes("cardio") || workoutType.includes("run")) {
-      return "🏃";
-    } else if (
-      workoutType.includes("strength") ||
-      workoutType.includes("weight")
-    ) {
-      return "💪";
-    } else if (
-      workoutType.includes("yoga") ||
-      workoutType.includes("stretch")
-    ) {
-      return "🧘";
-    } else if (workoutType.includes("upper")) {
-      return "💪";
-    } else if (workoutType.includes("lower") || workoutType.includes("leg")) {
-      return "🦵";
-    } else {
-      return "🏃‍♂️";
-    }
-  };
-
-  const getExerciseCount = () => {
-    return workout.blocks?.length || 0;
-  };
-
-  // Mock duration for now - in a real app this would come from workout data
-  const getDuration = () => {
-    return "45 min"; // This should be calculated or come from workout data
-  };
-
-  // Mock goal for now - in a real app this would come from workout data
   const getGoal = () => {
-    const workoutType = workout.title?.toLowerCase() || "";
-    if (workoutType.includes("strength")) return "Build Strength";
-    if (workoutType.includes("cardio")) return "Improve Cardio";
-    if (workoutType.includes("full")) return "Full Body";
+    if (onboarding?.goal) {
+      switch (onboarding.goal) {
+        case "fat_loss":
+          return "Fat Loss";
+        case "hypertrophy":
+          return "Muscle Building";
+        case "strength":
+          return "Build Strength";
+        case "returning":
+          return "Get Back in Shape";
+        case "general_health":
+          return "General Health";
+        default:
+          return onboarding.goal;
+      }
+    }
     return "General Fitness";
+  };
+
+  const getLocation = () => {
+    if (onboarding?.location) {
+      return onboarding.location === "gym" ? "Gym Workout" : "Home Workout";
+    }
+    return "Workout";
+  };
+
+  const getDuration = () => {
+    if (onboarding?.minutesPerSession) {
+      return `${onboarding.minutesPerSession} min`;
+    }
+    return "45 min";
+  };
+
+  const getDaysPerWeek = () => {
+    if (onboarding?.daysPerWeek) {
+      return `${onboarding.daysPerWeek} days/week`;
+    }
+    return `${plan.days.length} days/week`;
+  };
+
+  const formatDate = (date: Date) => {
+    return new Intl.DateTimeFormat("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    }).format(date);
   };
 
   return (
     <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-shadow">
-      {/* Header with title and edit button */}
-      <div className="flex items-start justify-between mb-4">
-        {isEditing ? (
-          <div className="flex items-center space-x-2 flex-1">
-            <input
-              type="text"
-              value={editName}
-              onChange={(e) => setEditName(e.target.value)}
-              onKeyDown={handleKeyPress}
-              className="text-lg font-semibold text-black bg-gray-50 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent flex-1"
-              placeholder="Workout name"
-              autoFocus
-            />
-            <button
-              onClick={handleSave}
-              disabled={!editName.trim()}
-              className="bg-green-600 text-white p-2 rounded-lg hover:bg-green-700 disabled:opacity-50"
-            >
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M5 13l4 4L19 7"
-                />
-              </svg>
-            </button>
-            <button
-              onClick={handleCancel}
-              className="bg-gray-600 text-white p-2 rounded-lg hover:bg-gray-700"
-            >
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
-            </button>
+      {/* Header */}
+      <div className="flex items-start justify-between mb-6">
+        <div className="flex items-center space-x-3">
+          <div className="w-12 h-12 bg-gradient-to-br from-black to-gray-800 rounded-xl flex items-center justify-center">
+            <span className="text-xl">{getWorkoutImage()}</span>
           </div>
-        ) : (
-          <>
+          <div>
             <h3 className="text-lg font-semibold text-black">
-              {workout.title || `Workout ${index + 1}`}
+              {getGoal()} Plan
             </h3>
-            <button
-              onClick={() => setIsEditing(true)}
-              className="p-2 text-gray-600 hover:text-black hover:bg-gray-100 rounded-lg transition-colors"
-              title="Edit workout name"
-            >
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                />
-              </svg>
-            </button>
-          </>
-        )}
-      </div>
-
-      {/* Content with image (50%) and details (50%) */}
-      <div className="flex space-x-4 mb-6">
-        {/* Workout Image - 50% width */}
-        <div className="w-1/2">
-          <div className="w-full aspect-square bg-gradient-to-br from-blue-100 to-blue-200 rounded-2xl flex items-center justify-center text-4xl">
-            {getWorkoutImage(workout.title)}
+            <p className="text-sm text-gray-500">
+              Created {formatDate(plan.createdAt)}
+            </p>
           </div>
         </div>
+        <button className="w-10 h-10 bg-red-50 rounded-lg flex items-center justify-center hover:bg-red-100 transition-colors group">
+          <svg
+            className="w-5 h-5 text-red-600 group-hover:text-red-700"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2"
+              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1-1H9a1 1 0 00-1 1v3M4 7h16"
+            />
+          </svg>
+        </button>
+      </div>
 
-        {/* Workout Details - 50% width */}
-        <div className="w-1/2 space-y-3">
-          {/* Goal */}
+      {/* Workout Details */}
+      <div className="space-y-4 mb-6">
+        {/* First Row: Goal and Duration */}
+        <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
               <svg
@@ -219,7 +182,6 @@ function WorkoutCard({ workout, index, onNameUpdate }: WorkoutCardProps) {
             </div>
           </div>
 
-          {/* Duration */}
           <div className="flex items-center space-x-3">
             <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
               <svg
@@ -241,8 +203,10 @@ function WorkoutCard({ workout, index, onNameUpdate }: WorkoutCardProps) {
               <p className="font-medium text-gray-900">{getDuration()}</p>
             </div>
           </div>
+        </div>
 
-          {/* Exercises */}
+        {/* Second Row: Frequency and Location */}
+        <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
               <svg
@@ -255,59 +219,61 @@ function WorkoutCard({ workout, index, onNameUpdate }: WorkoutCardProps) {
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   strokeWidth="2"
-                  d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+                  d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
                 />
               </svg>
             </div>
             <div>
-              <p className="text-sm text-gray-500">Exercises</p>
-              <p className="font-medium text-gray-900">
-                {getExerciseCount()} exercises
-              </p>
+              <p className="text-sm text-gray-500">Frequency</p>
+              <p className="font-medium text-gray-900">{getDaysPerWeek()}</p>
+            </div>
+          </div>
+
+          <div className="flex items-center space-x-3">
+            <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center">
+              <svg
+                className="w-4 h-4 text-orange-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                />
+              </svg>
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Location</p>
+              <p className="font-medium text-gray-900">{getLocation()}</p>
             </div>
           </div>
         </div>
       </div>
 
       {/* Start Workout Button */}
-      <button className="w-full bg-black text-white py-3 px-4 rounded-xl hover:bg-gray-800 transition-colors font-medium">
+      <button
+        onClick={() => router.push(`/app/workout/${plan.id}`)}
+        className="w-full bg-black text-white py-3 px-4 rounded-xl hover:bg-gray-800 transition-colors font-medium"
+      >
         Start Workout
       </button>
     </div>
   );
 }
 
-export default function WorkoutList({ plan }: WorkoutListProps) {
-  const [workouts, setWorkouts] = useState(plan.days || []);
-
-  const handleWorkoutNameUpdate = (newName: string, index: number) => {
-    setWorkouts((prev) =>
-      prev.map((workout, i) =>
-        i === index ? { ...workout, title: newName } : workout
-      )
-    );
-  };
-
+export default function WorkoutList({ plan, onboarding }: WorkoutListProps) {
   return (
-    <section className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold text-white">Your Workouts</h2>
-        <div className="text-sm text-gray-300">
-          {plan.summary?.daysPerWeek || workouts.length} workouts per week
-        </div>
-      </div>
-
-      {/* Workout Cards Grid */}
-      <div className="grid gap-6 md:grid-cols-2">
-        {workouts.map((workout, index) => (
-          <WorkoutCard
-            key={index}
-            workout={workout}
-            index={index}
-            onNameUpdate={handleWorkoutNameUpdate}
-          />
-        ))}
-      </div>
-    </section>
+    <div>
+      <WorkoutCard plan={plan} onboarding={onboarding} />
+    </div>
   );
 }

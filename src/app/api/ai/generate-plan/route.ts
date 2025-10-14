@@ -24,7 +24,9 @@ export async function POST(req: Request) {
       experience: ob.experience,
       daysPerWeek: ob.daysPerWeek,
       minutesPerSession: ob.minutesPerSession,
-      equipment: ob.equipment as Array<"bodyweight" | "bands" | "dumbbells" | "barbell" | "machines">,
+      equipment: ob.equipment as Array<
+        "bodyweight" | "bands" | "dumbbells" | "barbell" | "machines"
+      >,
       injuries: ob.injuries || undefined,
       location: ob.location,
     };
@@ -38,6 +40,7 @@ export async function POST(req: Request) {
         weeks: plan.weeks,
         schedule: plan.schedule as Prisma.InputJsonValue,
         days: plan.days as unknown as Prisma.InputJsonValue,
+        onboarding: userProfile as Prisma.InputJsonValue,
         source: "ai",
       },
     });
@@ -50,13 +53,31 @@ export async function POST(req: Request) {
     if (!userId)
       return NextResponse.json({ error: "FALLBACK_FAILED" }, { status: 500 });
 
+    // Get the user's onboarding for fallback
+    const ob = await prisma.onboardingAnswers.findUnique({ where: { userId } });
+    const fallbackOnboarding = ob ? {
+      goal: ob.goal,
+      experience: ob.experience,
+      daysPerWeek: ob.daysPerWeek,
+      minutesPerSession: ob.minutesPerSession,
+      equipment: ob.equipment,
+      location: ob.location,
+    } : {
+      goal: "general_health",
+      experience: "beginner",
+      daysPerWeek: 3,
+      minutesPerSession: 30,
+      equipment: ["bodyweight"],
+      location: "home",
+    };
+
     const fallback = await prisma.workoutPlan.create({
       data: {
         userId,
         summary: {
-          daysPerWeek: 3,
-          minutes: 30,
-          goal: "general_health",
+          daysPerWeek: fallbackOnboarding.daysPerWeek,
+          minutes: fallbackOnboarding.minutesPerSession,
+          goal: fallbackOnboarding.goal,
         } as Prisma.InputJsonValue,
         weeks: 4,
         schedule: ["mon", "wed", "fri"] as Prisma.InputJsonValue,
@@ -70,7 +91,17 @@ export async function POST(req: Request) {
               { exerciseId: "ex_one_arm_row_db", sets: 3, reps: "10/side" },
             ],
           },
+          {
+            id: "w1d2",
+            title: "Full-Body B",
+            blocks: [
+              { exerciseId: "ex_goblet_squat", sets: 3, reps: "8-10" },
+              { exerciseId: "ex_pushup", sets: 3, reps: "8-12" },
+              { exerciseId: "ex_one_arm_row_db", sets: 3, reps: "10/side" },
+            ],
+          },
         ] as Prisma.InputJsonValue,
+        onboarding: fallbackOnboarding as Prisma.InputJsonValue,
         source: "fallback",
       },
     });

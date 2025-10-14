@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useSession } from "next-auth/react";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
 
 const HamburgerIcon = () => (
@@ -58,13 +58,25 @@ export default function Header() {
   const { data: session } = useSession();
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
 
-  // Show back arrow on all pages except home
+  // Show back arrow on all pages except home, plus onboarding when returning user
   const isHomePage = pathname === '/app/home';
-  const showBackButton = session?.user && !isHomePage && pathname?.startsWith('/app/');
+  const isOnboardingPage = pathname === '/onboarding';
+  const isReturningUser = searchParams?.get('returning') === 'true';
+  const showBackButton = session?.user && (
+    (!isHomePage && pathname?.startsWith('/app/')) || 
+    (isOnboardingPage && isReturningUser)
+  );
 
   const handleBack = () => {
     router.back();
+  };
+
+  const handleLogoClick = () => {
+    if (session?.user) {
+      router.push('/app/home');
+    }
   };
 
   return (
@@ -82,10 +94,14 @@ export default function Header() {
               </button>
             )}
           </div>
-          <div className="flex items-center space-x-2">
+          <button 
+            onClick={handleLogoClick}
+            className="flex items-center space-x-2 hover:opacity-80 transition-opacity"
+            disabled={!session?.user}
+          >
             <DumbbellIcon />
             <h1 className="text-2xl font-black text-black">WON</h1>
-          </div>
+          </button>
           <div className="flex-1 flex justify-end">
             {session?.user && (
               <button

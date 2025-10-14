@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import WelcomeHeader from "@/components/WelcomeHeader";
 import WorkoutList from "@/components/WorkoutList";
 
@@ -11,11 +10,17 @@ interface PlanSummary {
 }
 
 interface PlanDay {
+  id?: string;
   title?: string;
+  focus?: string;
+  estimatedDuration?: number;
   blocks?: Array<{
     exerciseId?: string;
+    name?: string;
     sets?: number;
     reps?: string;
+    rest?: string;
+    notes?: string;
   }>;
 }
 
@@ -25,32 +30,45 @@ interface User {
   email: string;
 }
 
+interface OnboardingData {
+  goal: string;
+  experience: string;
+  daysPerWeek: number;
+  minutesPerSession: number;
+  equipment: string[];
+  location: string;
+}
+
 interface Plan {
   id: string;
   summary: PlanSummary;
   days: PlanDay[];
   createdAt: Date;
+  onboarding?: OnboardingData;
 }
 
 interface HomePageClientProps {
   user: User;
-  plan: Plan | null;
+  plans: Plan[];
 }
 
 export default function HomePageClient({
-  user: initialUser,
-  plan,
+  user,
+  plans,
 }: HomePageClientProps) {
-  const [user, setUser] = useState(initialUser);
 
   return (
-    <div className="flex items-center justify-center p-8 min-h-full">
-      <div className="w-full max-w-4xl space-y-6">
+    <div className="p-4 pb-20">
+      <div className="w-full max-w-4xl mx-auto space-y-6">
         {/* Welcome Header */}
         <WelcomeHeader userName={user.name} />
         {/* Main Content */}
-        {plan ? (
-          <WorkoutList plan={plan} />
+        {plans && plans.length > 0 ? (
+          <div className="space-y-6">
+            {plans.map((plan) => (
+              <WorkoutList key={plan.id} plan={plan} onboarding={plan.onboarding} />
+            ))}
+          </div>
         ) : (
           <div className="bg-white rounded-3xl p-8 shadow-lg">
             <div className="text-center space-y-6">

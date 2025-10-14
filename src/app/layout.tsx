@@ -4,6 +4,7 @@ import "./globals.css";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Providers } from "@/components/Providers";
+import { Suspense } from "react";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -53,11 +54,13 @@ export default function RootLayout({
         />
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen flex flex-col`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased h-screen overflow-hidden flex flex-col`}
       >
         <Providers>
-          <Header />
-          <main className="flex-1 bg-black">{children}</main>
+          <Suspense fallback={<div className="w-full py-2 bg-white border-b border-gray-200 h-16" />}>
+            <Header />
+          </Suspense>
+          <main className="flex-1 bg-black overflow-y-auto">{children}</main>
           <Footer />
         </Providers>
       </body>

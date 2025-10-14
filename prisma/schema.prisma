@@ -85,6 +85,7 @@ model WorkoutPlan {
   weeks     Int
   schedule  Json // ["lun","mie","vie"]
   days      Json // definición del plan por día
+  onboarding Json?    // snapshot of onboarding data when plan was created
   source    PlanSource
   createdAt DateTime   @default(now())
 
