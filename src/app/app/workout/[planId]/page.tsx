@@ -36,8 +36,8 @@ export default async function WorkoutDetailsPage({
   params,
   searchParams,
 }: {
-  params: { planId: string };
-  searchParams: { day?: string };
+  params: Promise<{ planId: string }>;
+  searchParams: Promise<{ day?: string }>;
 }) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.email) redirect("/auth/login");
@@ -48,9 +48,12 @@ export default async function WorkoutDetailsPage({
   });
   if (!user) redirect("/auth/login");
 
+  const { planId } = await params;
+  const { day } = await searchParams;
+
   const workoutPlan = await prisma.workoutPlan.findFirst({
     where: { 
-      id: params.planId,
+      id: planId,
       userId: user.id 
     },
   });
@@ -69,7 +72,7 @@ export default async function WorkoutDetailsPage({
     createdAt: workoutPlan.createdAt,
   };
 
-  const selectedDay = searchParams.day ? parseInt(searchParams.day) : 0;
+  const selectedDay = day ? parseInt(day) : 0;
 
   return (
     <WorkoutDetailsClient 
