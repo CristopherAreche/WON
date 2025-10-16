@@ -10,6 +10,12 @@ interface Exercise {
   reps: number[];
   notes?: string;
   reference?: string;
+  similarExercises?: Array<{
+    name: string;
+    equipment: "bodyweight" | "bands" | "dumbbells" | "barbell" | "machines";
+    notes?: string;
+    reference?: string;
+  }>;
 }
 
 interface WorkoutSession {
@@ -153,6 +159,8 @@ function ExerciseItem({
   isCompleted,
   onToggle,
   onVideoClick,
+  onSubstitute,
+  exerciseSubstitutions,
 }: {
   exercise: Exercise;
   exerciseIndex: number;
@@ -160,11 +168,18 @@ function ExerciseItem({
   isCompleted: boolean;
   onToggle: () => void;
   onVideoClick: (exerciseName: string, videoUrl: string) => void;
+  onSubstitute: (sessionIndex: number, exerciseIndex: number) => void;
+  exerciseSubstitutions: Record<string, number>;
 }) {
   const formatReps = (reps: number[]) => {
     if (reps.length === 1) return `${reps[0]} reps`;
     return reps.join(" / ") + " reps";
   };
+
+  // Get current exercise (original or substitution)
+  const substitutionKey = `${sessionIndex}-${exerciseIndex}`;
+  const currentSubstitution = exerciseSubstitutions[substitutionKey] || 0;
+  const currentExercise = currentSubstitution === 0 ? exercise : exercise.similarExercises?.[currentSubstitution - 1] || exercise;
 
   return (
     <div className="bg-gray-50 rounded-xl p-4 hover:bg-gray-100 transition-colors">
@@ -172,20 +187,11 @@ function ExerciseItem({
         <div className="flex-1">
           <div className="flex items-center justify-between mb-2">
             <div>
-              <h4 className="font-semibold text-black">{exercise.name}</h4>
+              <h4 className="font-semibold text-black">{currentExercise.name}</h4>
               <p className="text-sm text-gray-600 capitalize">
-                {exercise.equipment.replace("_", " ")}
+                {currentExercise.equipment.replace("_", " ")}
               </p>
             </div>
-            
-            {exercise.reference && (
-              <button
-                onClick={() => onVideoClick(exercise.name, exercise.reference!)}
-                className="px-3 py-1 bg-blue-100 text-blue-700 text-xs rounded-full hover:bg-blue-200 transition-colors"
-              >
-                Watch Demo
-              </button>
-            )}
           </div>
 
           <div className="flex items-center space-x-4 mb-2">
@@ -194,37 +200,89 @@ function ExerciseItem({
             </span>
           </div>
 
-          {exercise.notes && (
-            <p className="text-sm text-gray-600 mb-3 bg-blue-50 p-2 rounded border-l-2 border-blue-200">
-              {exercise.notes}
-            </p>
+          {currentExercise.notes && (
+            <div className="mb-3">
+              <p className="text-sm text-gray-600 bg-blue-50 p-2 rounded border-l-2 border-blue-200">
+                {currentExercise.notes}
+              </p>
+              
+              {/* Watch Demo button at bottom of notes */}
+              {currentExercise.reference && (
+                <div className="mt-2">
+                  <button
+                    onClick={() => onVideoClick(currentExercise.name, currentExercise.reference!)}
+                    className="px-3 py-1 bg-blue-100 text-blue-700 text-xs rounded-full hover:bg-blue-200 transition-colors"
+                  >
+                    Watch Demo
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+          
+          {/* Watch Demo button when no notes */}
+          {!currentExercise.notes && currentExercise.reference && (
+            <div className="mb-3">
+              <button
+                onClick={() => onVideoClick(currentExercise.name, currentExercise.reference!)}
+                className="px-3 py-1 bg-blue-100 text-blue-700 text-xs rounded-full hover:bg-blue-200 transition-colors"
+              >
+                Watch Demo
+              </button>
+            </div>
           )}
         </div>
 
-        <button
-          onClick={onToggle}
-          className={`w-8 h-8 rounded-full border-2 flex items-center justify-center transition-colors ml-4 flex-shrink-0 ${
-            isCompleted
-              ? "bg-green-500 border-green-500"
-              : "border-gray-300 hover:border-gray-400"
-          }`}
-        >
-          {isCompleted && (
-            <svg
-              className="w-5 h-5 text-white"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
+        <div className="flex items-center space-x-2 ml-4 flex-shrink-0">
+          {/* Exercise Substitution Icon */}
+          {exercise.similarExercises && exercise.similarExercises.length > 0 && (
+            <button
+              onClick={() => onSubstitute(sessionIndex, exerciseIndex)}
+              className="w-8 h-8 bg-gray-200 hover:bg-gray-300 rounded-full flex items-center justify-center transition-colors"
+              title="Switch exercise"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M5 13l4 4L19 7"
-              />
-            </svg>
+              <svg
+                className="w-4 h-4 text-gray-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"
+                />
+              </svg>
+            </button>
           )}
-        </button>
+
+          {/* Completion Checkbox */}
+          <button
+            onClick={onToggle}
+            className={`w-8 h-8 rounded-full border-2 flex items-center justify-center transition-colors ${
+              isCompleted
+                ? "bg-green-500 border-green-500"
+                : "border-gray-300 hover:border-gray-400"
+            }`}
+          >
+            {isCompleted && (
+              <svg
+                className="w-5 h-5 text-white"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M5 13l4 4L19 7"
+                />
+              </svg>
+            )}
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -239,6 +297,8 @@ function WorkoutSessionComponent({
   exerciseCompletion,
   onExerciseToggle,
   onVideoClick,
+  onSubstitute,
+  exerciseSubstitutions,
 }: {
   session: WorkoutSession;
   sessionIndex: number;
@@ -247,6 +307,8 @@ function WorkoutSessionComponent({
   exerciseCompletion: Record<string, boolean>;
   onExerciseToggle: (sessionIndex: number, exerciseIndex: number) => void;
   onVideoClick: (exerciseName: string, videoUrl: string) => void;
+  onSubstitute: (sessionIndex: number, exerciseIndex: number) => void;
+  exerciseSubstitutions: Record<string, number>;
 }) {
   const getCompletionStatus = () => {
     if (!session.items || session.items.length === 0) return "red";
@@ -285,6 +347,8 @@ function WorkoutSessionComponent({
                 }
                 onToggle={() => onExerciseToggle(sessionIndex, exerciseIndex)}
                 onVideoClick={onVideoClick}
+                onSubstitute={onSubstitute}
+                exerciseSubstitutions={exerciseSubstitutions}
               />
             ))}
 
@@ -317,6 +381,14 @@ export default function WorkoutDetailsClient({
     exerciseName: string;
     videoUrl: string;
   }>({ isOpen: false, exerciseName: "", videoUrl: "" });
+  const [exerciseSubstitutions, setExerciseSubstitutions] = useState<
+    Record<string, number>
+  >({});
+  const [celebrationModal, setCelebrationModal] = useState<{
+    isOpen: boolean;
+    type: "daily" | "all";
+    sessionTitle?: string;
+  }>({ isOpen: false, type: "daily" });
 
   // Load saved exercise completion from localStorage on component mount
   React.useEffect(() => {
@@ -336,6 +408,18 @@ export default function WorkoutDetailsClient({
         console.error("Error loading saved progress:", error);
       }
     }
+
+    // Load saved exercise substitutions
+    const savedSubstitutions = localStorage.getItem(`exercise_substitutions_${plan.id}`);
+    if (savedSubstitutions) {
+      try {
+        const substitutions = JSON.parse(savedSubstitutions);
+        setExerciseSubstitutions(substitutions);
+        console.log("📱 Loaded saved exercise substitutions:", substitutions);
+      } catch (error) {
+        console.error("Error loading saved substitutions:", error);
+      }
+    }
   }, [plan]);
 
   // Save exercise completion to localStorage whenever it changes
@@ -346,15 +430,58 @@ export default function WorkoutDetailsClient({
     }
   }, [exerciseCompletion, plan.id]);
 
+  // Save exercise substitutions to localStorage whenever they change
+  React.useEffect(() => {
+    if (Object.keys(exerciseSubstitutions).length > 0) {
+      localStorage.setItem(`exercise_substitutions_${plan.id}`, JSON.stringify(exerciseSubstitutions));
+      console.log("💾 Saved exercise substitutions to localStorage");
+    }
+  }, [exerciseSubstitutions, plan.id]);
+
   const toggleExerciseCompletion = (
     sessionIndex: number,
     exerciseIndex: number
   ) => {
     const key = `${sessionIndex}-${exerciseIndex}`;
-    setExerciseCompletion((prev) => ({
-      ...prev,
-      [key]: !prev[key],
-    }));
+    const newCompletion = {
+      ...exerciseCompletion,
+      [key]: !exerciseCompletion[key],
+    };
+    
+    setExerciseCompletion(newCompletion);
+
+    // Check if this session is now completed
+    if (!exerciseCompletion[key]) { // Only check when marking as complete
+      const session = plan.days.sessions[sessionIndex];
+      if (session && session.items) {
+        const sessionCompletedCount = session.items.filter(
+          (_, idx) => newCompletion[`${sessionIndex}-${idx}`]
+        ).length;
+        
+        // If all exercises in this session are now completed
+        if (sessionCompletedCount === session.items.length) {
+          setCelebrationModal({
+            isOpen: true,
+            type: "daily",
+            sessionTitle: session.title
+          });
+          
+          // Check if all sessions are now completed
+          setTimeout(() => {
+            const allSessionsCompleted = plan.days.sessions.every((sess, sessIdx) =>
+              sess.items.every((_, exIdx) => newCompletion[`${sessIdx}-${exIdx}`])
+            );
+            
+            if (allSessionsCompleted) {
+              setCelebrationModal({
+                isOpen: true,
+                type: "all"
+              });
+            }
+          }, 2000); // Show daily completion first, then check for all
+        }
+      }
+    }
   };
 
   const toggleSession = (sessionIndex: number) => {
@@ -381,6 +508,28 @@ export default function WorkoutDetailsClient({
       exerciseName: "",
       videoUrl: ""
     });
+  };
+
+  const closeCelebrationModal = () => {
+    setCelebrationModal({
+      isOpen: false,
+      type: "daily"
+    });
+  };
+
+  const substituteExercise = (sessionIndex: number, exerciseIndex: number) => {
+    const key = `${sessionIndex}-${exerciseIndex}`;
+    const currentSubstitution = exerciseSubstitutions[key] || 0;
+    
+    // Cycle through alternatives (0 = original, 1-3 = alternatives)
+    const nextSubstitution = (currentSubstitution + 1) % 4;
+    
+    setExerciseSubstitutions(prev => ({
+      ...prev,
+      [key]: nextSubstitution
+    }));
+    
+    console.log(`🔄 Exercise substituted: ${key} -> ${nextSubstitution}`);
   };
 
   const getGoalDisplay = () => {
@@ -549,6 +698,8 @@ export default function WorkoutDetailsClient({
               exerciseCompletion={exerciseCompletion}
               onExerciseToggle={toggleExerciseCompletion}
               onVideoClick={openVideoModal}
+              onSubstitute={substituteExercise}
+              exerciseSubstitutions={exerciseSubstitutions}
             />
           ))}
         </div>
@@ -598,6 +749,57 @@ export default function WorkoutDetailsClient({
                   </div>
                 )}
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Celebration Modal */}
+      {celebrationModal.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl w-full max-w-md mx-4 overflow-hidden shadow-2xl">
+            {/* Modal Content */}
+            <div className="p-8 text-center">
+              {celebrationModal.type === "daily" ? (
+                <>
+                  {/* Daily Completion */}
+                  <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                  <h2 className="text-2xl font-bold text-black mb-2">Congratulations!</h2>
+                  <p className="text-gray-600 mb-6">
+                    You have completed your workout for the day
+                    {celebrationModal.sessionTitle && `: ${celebrationModal.sessionTitle}`}
+                  </p>
+                  <button
+                    onClick={closeCelebrationModal}
+                    className="w-full bg-green-600 text-white py-3 px-6 rounded-xl font-medium hover:bg-green-700 transition-colors"
+                  >
+                    Keep Moving
+                  </button>
+                </>
+              ) : (
+                <>
+                  {/* All Sessions Completion */}
+                  <div className="w-16 h-16 bg-gradient-to-r from-green-400 to-blue-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                    </svg>
+                  </div>
+                  <h2 className="text-2xl font-bold text-black mb-2">Amazing!</h2>
+                  <p className="text-gray-600 mb-6">
+                    You have completed all your workout sessions! You're crushing your fitness goals!
+                  </p>
+                  <button
+                    onClick={closeCelebrationModal}
+                    className="w-full bg-gradient-to-r from-green-600 to-blue-600 text-white py-3 px-6 rounded-xl font-medium hover:from-green-700 hover:to-blue-700 transition-all"
+                  >
+                    Keep Moving
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>

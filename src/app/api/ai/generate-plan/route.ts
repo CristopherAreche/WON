@@ -30,10 +30,18 @@ export async function POST(req: Request) {
         "bodyweight" | "bands" | "dumbbells" | "barbell" | "machines"
       >,
       injuries: ob.injuries || undefined,
-      location: ob.location,
+      // Handle location as array (new format) or single value (current database)
+      location: Array.isArray(ob.location) ? ob.location : [ob.location],
+      // Provide default values for new fields until migration is complete
+      currentWeight: (ob as any).currentWeight || 150,
+      height: (ob as any).height || 5.5,
+      age: (ob as any).age || 25,
     };
 
     console.log("🔵 Generating workout plan with user profile:", JSON.stringify(userProfile, null, 2));
+    console.log("🔵 [DEBUG] UserProfile type check - location:", typeof userProfile.location, userProfile.location);
+    console.log("🔵 [DEBUG] UserProfile physical data - weight:", userProfile.currentWeight, "height:", userProfile.height, "age:", userProfile.age);
+    
     const plan = await aiWorkoutGenerator.generateWorkoutPlan(userProfile);
     console.log("🟢 Generated workout plan from OpenRouter API:", JSON.stringify(plan, null, 2));
 
@@ -90,7 +98,12 @@ export async function POST(req: Request) {
       daysPerWeek: fallbackOnboarding.daysPerWeek,
       minutesPerSession: fallbackOnboarding.minutesPerSession,
       equipment: fallbackOnboarding.equipment as Array<"bodyweight" | "bands" | "dumbbells" | "barbell" | "machines">,
-      location: fallbackOnboarding.location as "home" | "gym",
+      // Handle location as array for consistency with new format
+      location: Array.isArray(fallbackOnboarding.location) ? fallbackOnboarding.location : [fallbackOnboarding.location as "home" | "gym"],
+      // Provide default values for new fields
+      currentWeight: 150,
+      height: 5.5,
+      age: 25,
     };
 
     console.log("🟡 Fallback: Generating workout plan with profile:", JSON.stringify(fallbackUserProfile, null, 2));

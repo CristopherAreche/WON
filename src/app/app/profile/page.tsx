@@ -2,6 +2,9 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { redirect } from "next/navigation";
+import SecurityTokenDisplay from "@/components/SecurityTokenDisplay";
+import Link from "next/link";
+import DeleteAccountButton from "@/components/DeleteAccountButton";
 
 export default async function ProfilePage() {
   const session = await getServerSession(authOptions);
@@ -14,6 +17,7 @@ export default async function ProfilePage() {
       name: true,
       email: true,
       createdAt: true,
+      securityToken: true,
     },
   });
 
@@ -57,6 +61,9 @@ export default async function ProfilePage() {
             </div>
           </div>
 
+          {/* Security Token */}
+          <SecurityTokenDisplay />
+
           {/* Account Actions */}
           <div className="bg-gray-50 rounded-lg p-6">
             <h2 className="text-lg font-medium text-black mb-4">
@@ -66,9 +73,13 @@ export default async function ProfilePage() {
               <button className="w-full bg-black text-white py-3 rounded-lg hover:bg-gray-800 transition-colors">
                 Edit Profile
               </button>
-              <button className="w-full border border-gray-300 text-black py-3 rounded-lg hover:bg-gray-50 transition-colors">
+              <Link
+                href="/app/change-password"
+                className="w-full border border-gray-300 text-black py-3 rounded-lg hover:bg-gray-50 transition-colors block text-center"
+              >
                 Change Password
-              </button>
+              </Link>
+              <DeleteAccountButton userName={user.name || ""} />
             </div>
           </div>
 

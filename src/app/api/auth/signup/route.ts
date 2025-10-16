@@ -4,6 +4,11 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import bcrypt from "bcrypt";
 
+// Generate a 10-digit security token
+function generateSecurityToken(): string {
+  return Math.random().toString().slice(2, 12);
+}
+
 export async function POST(req: Request) {
   try {
     const { email, password, name } = await req.json();
@@ -18,10 +23,23 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "EMAIL_TAKEN" }, { status: 409 });
     }
     const passwordHash = await bcrypt.hash(password, 10);
+    const securityToken = generateSecurityToken();
+    
     const user = await prisma.user.create({
-      data: { email, passwordHash, name },
+      data: { 
+        email, 
+        passwordHash, 
+        name,
+        securityToken
+      },
     });
-    return NextResponse.json({ ok: true, userId: user.id });
+    
+    console.log("🔵 User created with security token:", securityToken);
+    return NextResponse.json({ 
+      ok: true, 
+      userId: user.id,
+      securityToken // Return token so frontend can display it
+    });
   } catch (e) {
     console.error(e);
     return NextResponse.json({ error: "SIGNUP_FAILED" }, { status: 500 });

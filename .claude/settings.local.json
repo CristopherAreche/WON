@@ -3,7 +3,8 @@
     "allow": [
       "Bash(git add:*)",
       "Bash(git push:*)",
-      "Bash(npx prisma migrate dev:*)"
+      "Bash(npx prisma migrate dev:*)",
+      "Bash(sudo npx prisma generate)"
     ],
     "deny": [],
     "ask": []

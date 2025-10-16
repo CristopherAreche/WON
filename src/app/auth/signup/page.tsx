@@ -72,6 +72,9 @@ export default function SignupPage() {
   }>({});
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [securityToken, setSecurityToken] = useState<string | null>(null);
+  const [showToken, setShowToken] = useState(false);
+  const [tokenCopied, setTokenCopied] = useState(false);
 
   const {
     register,
@@ -104,7 +107,15 @@ export default function SignupPage() {
       }
       return;
     }
-    // auto-login
+
+    // Get the security token from signup response
+    const data = await res.json();
+    if (data.securityToken) {
+      setSecurityToken(data.securityToken);
+      return; // Show token display instead of auto-login
+    }
+
+    // auto-login (fallback if no token in response)
     const result = await signIn("credentials", {
       email: values.email,
       password: values.password,
@@ -116,6 +127,114 @@ export default function SignupPage() {
     } else {
       setFieldErrors({ general: "Account created but login failed. Please try logging in manually." });
     }
+  }
+
+  const copyToClipboard = async () => {
+    if (!securityToken) return;
+    try {
+      await navigator.clipboard.writeText(securityToken);
+      setTokenCopied(true);
+      setTimeout(() => setTokenCopied(false), 2000);
+    } catch (error) {
+      console.error('Failed to copy to clipboard:', error);
+    }
+  };
+
+  const proceedToLogin = () => {
+    // Redirect to login page after user acknowledges security token
+    router.push("/auth/login");
+  };
+
+  // Show security token success view
+  if (securityToken) {
+    return (
+      <div className="flex items-center justify-center p-8 min-h-full">
+        <div className="bg-white rounded-2xl p-8 w-full max-w-md shadow-lg">
+          <div className="text-center space-y-6">
+            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto">
+              <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            
+            <div>
+              <h1 className="text-2xl font-semibold text-black mb-2">Account Created!</h1>
+              <p className="text-gray-600 text-sm">
+                Your account has been successfully created. Please save your security token below.
+              </p>
+            </div>
+
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+              <h3 className="font-medium text-yellow-800 mb-2">⚠️ Important: Save Your Security Token</h3>
+              <p className="text-sm text-yellow-700 mb-3">
+                This 10-digit code is required for password changes and resets. Keep it secure and accessible.
+              </p>
+              
+              <div className="relative">
+                <input
+                  type="text"
+                  value={showToken ? securityToken : '••••••••••'}
+                  readOnly
+                  className="w-full border border-yellow-300 rounded-lg px-3 py-2 pr-20 bg-white font-mono text-center tracking-wider"
+                />
+                
+                <div className="absolute right-2 top-1/2 transform -translate-y-1/2 flex space-x-1">
+                  {/* Copy Button */}
+                  <button
+                    onClick={copyToClipboard}
+                    className="p-1 text-yellow-600 hover:text-yellow-800 focus:outline-none"
+                    title={tokenCopied ? 'Copied!' : 'Copy to clipboard'}
+                  >
+                    {tokenCopied ? (
+                      <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                      </svg>
+                    ) : (
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                      </svg>
+                    )}
+                  </button>
+
+                  {/* Show/Hide Button */}
+                  <button
+                    onClick={() => setShowToken(!showToken)}
+                    className="p-1 text-yellow-600 hover:text-yellow-800 focus:outline-none"
+                    title={showToken ? 'Hide token' : 'Show token'}
+                  >
+                    {showToken ? (
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L8.05 8.05M14.12 14.12l1.829 1.829" />
+                      </svg>
+                    ) : (
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                      </svg>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {tokenCopied && (
+                <p className="text-sm text-green-600 mt-2">✓ Token copied to clipboard!</p>
+              )}
+            </div>
+
+            <button
+              onClick={proceedToLogin}
+              className="w-full bg-black text-white py-3 rounded-lg hover:bg-gray-800 transition-colors"
+            >
+              Continue to Login
+            </button>
+
+            <p className="text-xs text-gray-500">
+              You can also find this token later in your profile settings.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (

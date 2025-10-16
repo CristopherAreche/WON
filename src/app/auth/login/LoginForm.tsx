@@ -167,7 +167,7 @@ export default function LoginForm() {
 
           <div className="text-center space-y-2">
             <Link
-              href="/auth/forgot-password"
+              href="/auth/reset-password-token"
               className="text-sm text-blue-600 hover:text-blue-500 block"
             >
               Forgot your password?

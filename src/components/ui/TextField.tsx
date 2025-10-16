@@ -16,6 +16,10 @@ interface TextFieldProps {
   className?: string;
   onKeyDown?: (e: React.KeyboardEvent) => void;
   name?: string;
+  type?: string;
+  min?: string;
+  max?: string;
+  step?: string;
 }
 
 const TextField = forwardRef<
@@ -36,6 +40,10 @@ const TextField = forwardRef<
       className,
       onKeyDown,
       name,
+      type,
+      min,
+      max,
+      step,
     },
     ref
   ) => {
@@ -84,6 +92,10 @@ const TextField = forwardRef<
             maxLength={maxLength}
             rows={multiline ? rows : undefined}
             name={name}
+            type={!multiline ? type : undefined}
+            min={!multiline ? min : undefined}
+            max={!multiline ? max : undefined}
+            step={!multiline ? step : undefined}
             className={baseClasses}
           />
 
