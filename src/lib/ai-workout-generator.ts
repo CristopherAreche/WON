@@ -353,7 +353,7 @@ Generate a complete, safe and effective plan. Respond ONLY with valid JSON.`;
       meta: {
         goal: userProfile.goal,
         experience: userProfile.experience,
-        location: userProfile.location,
+        location: userProfile.location.join(", "), // Convert array to string
         equipment: userProfile.equipment,
       },
     };
