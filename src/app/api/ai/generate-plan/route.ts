@@ -6,8 +6,10 @@ import type { Prisma } from "@prisma/client";
 import { aiWorkoutGenerator } from "@/lib/ai-workout-generator";
 
 export async function POST(req: Request) {
+  let userId: string | null = null;
   try {
-    const { userId } = await req.json();
+    const body = await req.json();
+    userId = body.userId;
     if (!userId)
       return NextResponse.json({ error: "MISSING_USER" }, { status: 400 });
 
@@ -31,25 +33,35 @@ export async function POST(req: Request) {
       location: ob.location,
     };
 
+    console.log("🔵 Generating workout plan with user profile:", JSON.stringify(userProfile, null, 2));
     const plan = await aiWorkoutGenerator.generateWorkoutPlan(userProfile);
+    console.log("🟢 Generated workout plan from OpenRouter API:", JSON.stringify(plan, null, 2));
 
+    console.log("💾 Saving workout plan to database...");
     const saved = await prisma.workoutPlan.create({
       data: {
         userId,
-        summary: plan.summary as Prisma.InputJsonValue,
-        weeks: plan.weeks,
-        schedule: plan.schedule as Prisma.InputJsonValue,
-        days: plan.days as unknown as Prisma.InputJsonValue,
+        summary: {
+          daysPerWeek: userProfile.daysPerWeek,
+          minutes: userProfile.minutesPerSession,
+          goal: userProfile.goal,
+          split: plan.split,
+          description: plan.description
+        } as Prisma.InputJsonValue,
+        weeks: 4, // Default weeks for new structure
+        schedule: plan.sessions.map(s => s.dayOfWeek) as Prisma.InputJsonValue,
+        days: plan as unknown as Prisma.InputJsonValue, // Store entire plan structure
         onboarding: userProfile as Prisma.InputJsonValue,
         source: "ai",
+        model: "openai/gpt-4o-mini",
       },
     });
+    console.log("✅ Workout plan saved to database with ID:", saved.id);
 
     return NextResponse.json({ ok: true, planId: saved.id });
   } catch (e) {
-    console.error(e);
-    // Fallback determinista si “IA” falla
-    const { userId } = await req.json().catch(() => ({ userId: null }));
+    console.error("🔴 Main generation failed:", e);
+    // Fallback determinista si "IA" falla
     if (!userId)
       return NextResponse.json({ error: "FALLBACK_FAILED" }, { status: 500 });
 
@@ -71,6 +83,20 @@ export async function POST(req: Request) {
       location: "home",
     };
 
+    // Generate fallback plan using the same generator
+    const fallbackUserProfile = {
+      goal: fallbackOnboarding.goal as "fat_loss" | "hypertrophy" | "strength" | "returning" | "general_health",
+      experience: fallbackOnboarding.experience as "beginner" | "three_to_twelve_months" | "one_to_three_years" | "three_years_plus",
+      daysPerWeek: fallbackOnboarding.daysPerWeek,
+      minutesPerSession: fallbackOnboarding.minutesPerSession,
+      equipment: fallbackOnboarding.equipment as Array<"bodyweight" | "bands" | "dumbbells" | "barbell" | "machines">,
+      location: fallbackOnboarding.location as "home" | "gym",
+    };
+
+    console.log("🟡 Fallback: Generating workout plan with profile:", JSON.stringify(fallbackUserProfile, null, 2));
+    const fallbackPlan = await aiWorkoutGenerator.generateWorkoutPlan(fallbackUserProfile);
+    console.log("🟠 Fallback: Generated workout plan:", JSON.stringify(fallbackPlan, null, 2));
+
     const fallback = await prisma.workoutPlan.create({
       data: {
         userId,
@@ -78,31 +104,15 @@ export async function POST(req: Request) {
           daysPerWeek: fallbackOnboarding.daysPerWeek,
           minutes: fallbackOnboarding.minutesPerSession,
           goal: fallbackOnboarding.goal,
+          split: fallbackPlan.split,
+          description: fallbackPlan.description
         } as Prisma.InputJsonValue,
         weeks: 4,
-        schedule: ["mon", "wed", "fri"] as Prisma.InputJsonValue,
-        days: [
-          {
-            id: "w1d1",
-            title: "Full-Body A",
-            blocks: [
-              { exerciseId: "ex_goblet_squat", sets: 3, reps: "8-10" },
-              { exerciseId: "ex_pushup", sets: 3, reps: "8-12" },
-              { exerciseId: "ex_one_arm_row_db", sets: 3, reps: "10/side" },
-            ],
-          },
-          {
-            id: "w1d2",
-            title: "Full-Body B",
-            blocks: [
-              { exerciseId: "ex_goblet_squat", sets: 3, reps: "8-10" },
-              { exerciseId: "ex_pushup", sets: 3, reps: "8-12" },
-              { exerciseId: "ex_one_arm_row_db", sets: 3, reps: "10/side" },
-            ],
-          },
-        ] as Prisma.InputJsonValue,
+        schedule: fallbackPlan.sessions.map(s => s.dayOfWeek) as Prisma.InputJsonValue,
+        days: fallbackPlan as unknown as Prisma.InputJsonValue,
         onboarding: fallbackOnboarding as Prisma.InputJsonValue,
         source: "fallback",
+        model: "fallback",
       },
     });
 

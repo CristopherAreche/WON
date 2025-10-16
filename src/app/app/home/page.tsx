@@ -11,13 +11,36 @@ interface PlanSummary {
   minutes?: number;
 }
 
-interface PlanDay {
-  title?: string;
-  blocks?: Array<{
-    exerciseId?: string;
-    sets?: number;
-    reps?: string;
-  }>;
+interface Exercise {
+  name: string;
+  equipment: "bodyweight" | "bands" | "dumbbells" | "barbell" | "machines";
+  sets: number;
+  reps: number[];
+  notes?: string;
+  reference?: string;
+}
+
+interface WorkoutSession {
+  dayOfWeek: number;
+  title: string;
+  estMinutes: number;
+  items: Exercise[];
+}
+
+interface WorkoutPlanData {
+  description: string;
+  split: string;
+  sessions: WorkoutSession[];
+  constraints: {
+    minutesPerSession: number;
+    injuryNotes?: string;
+  };
+  meta: {
+    goal: string;
+    experience: string;
+    location: string;
+    equipment: string[];
+  };
 }
 
 interface OnboardingData {
@@ -32,11 +55,10 @@ interface OnboardingData {
 interface Plan {
   id: string;
   summary: PlanSummary;
-  days: PlanDay[];
+  days: WorkoutPlanData;
   createdAt: Date;
   onboarding?: OnboardingData;
 }
-
 
 export default async function HomeApp() {
   const session = await getServerSession(authOptions);
@@ -44,11 +66,11 @@ export default async function HomeApp() {
 
   const user = await prisma.user.findUnique({
     where: { email: session.user.email },
-    select: { 
-      id: true, 
-      name: true, 
+    select: {
+      id: true,
+      name: true,
       email: true,
-      onboarding: true
+      onboarding: true,
     },
   });
   if (!user) redirect("/auth/login");
@@ -63,52 +85,49 @@ export default async function HomeApp() {
     // Temporary mock onboarding data until Prisma client is fixed
     const mockOnboardingData: OnboardingData[] = [
       {
-        goal: 'fat_loss',
-        experience: 'beginner',
+        goal: "fat_loss",
+        experience: "beginner",
         daysPerWeek: 3,
         minutesPerSession: 45,
-        equipment: ['dumbbells', 'bands'],
-        location: 'home'
+        equipment: ["dumbbells", "bands"],
+        location: "home",
       },
       {
-        goal: 'hypertrophy',
-        experience: 'one_to_three_years',
+        goal: "hypertrophy",
+        experience: "one_to_three_years",
         daysPerWeek: 4,
         minutesPerSession: 60,
-        equipment: ['barbell', 'dumbbells', 'machines'],
-        location: 'gym'
+        equipment: ["barbell", "dumbbells", "machines"],
+        location: "gym",
       },
       {
-        goal: 'strength',
-        experience: 'three_years_plus',
+        goal: "strength",
+        experience: "three_years_plus",
         daysPerWeek: 5,
         minutesPerSession: 75,
-        equipment: ['barbell', 'dumbbells', 'machines'],
-        location: 'gym'
+        equipment: ["barbell", "dumbbells", "machines"],
+        location: "gym",
       },
       {
-        goal: 'general_health',
-        experience: 'beginner',
+        goal: "general_health",
+        experience: "beginner",
         daysPerWeek: 3,
         minutesPerSession: 30,
-        equipment: ['bodyweight'],
-        location: 'home'
-      }
+        equipment: ["bodyweight"],
+        location: "home",
+      },
     ];
+
+    const onboarding = mockOnboardingData[index % mockOnboardingData.length];
 
     return {
       id: workoutPlan.id,
       summary: workoutPlan.summary as PlanSummary,
-      days: workoutPlan.days as PlanDay[],
+      days: workoutPlan.days as unknown as WorkoutPlanData,
       createdAt: workoutPlan.createdAt,
-      onboarding: mockOnboardingData[index % mockOnboardingData.length],
+      onboarding,
     };
   });
 
-  return (
-    <HomePageClient 
-      user={user}
-      plans={plans}
-    />
-  );
+  return <HomePageClient user={user} plans={plans} />;
 }

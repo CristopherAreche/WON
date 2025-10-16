@@ -1,26 +1,47 @@
 "use client";
 
+import React, { useState } from "react";
 import { useRouter } from "next/navigation";
+import ConfirmationModal from "@/components/ui/ConfirmationModal";
 
 interface PlanSummary {
   goal?: string;
   daysPerWeek?: number;
   minutes?: number;
+  split?: string;
+  description?: string;
 }
 
-interface PlanDay {
-  id?: string;
-  title?: string;
-  focus?: string;
-  estimatedDuration?: number;
-  blocks?: Array<{
-    exerciseId?: string;
-    name?: string;
-    sets?: number;
-    reps?: string;
-    rest?: string;
-    notes?: string;
-  }>;
+interface Exercise {
+  name: string;
+  equipment: "bodyweight" | "bands" | "dumbbells" | "barbell" | "machines";
+  sets: number;
+  reps: number[];
+  notes?: string;
+  reference?: string;
+}
+
+interface WorkoutSession {
+  dayOfWeek: number;
+  title: string;
+  estMinutes: number;
+  items: Exercise[];
+}
+
+interface WorkoutPlanData {
+  description: string;
+  split: string;
+  sessions: WorkoutSession[];
+  constraints: {
+    minutesPerSession: number;
+    injuryNotes?: string;
+  };
+  meta: {
+    goal: string;
+    experience: string;
+    location: string;
+    equipment: string[];
+  };
 }
 
 interface OnboardingData {
@@ -35,7 +56,7 @@ interface OnboardingData {
 interface Plan {
   id: string;
   summary: PlanSummary;
-  days: PlanDay[];
+  days: WorkoutPlanData; // Now contains the complete workout plan structure
   createdAt: Date;
   onboarding?: OnboardingData;
 }
@@ -43,21 +64,75 @@ interface Plan {
 interface WorkoutListProps {
   plan: Plan;
   onboarding?: OnboardingData;
+  onPlanDeleted?: (planId: string) => void;
 }
 
 interface WorkoutCardProps {
   plan: Plan;
   onboarding?: OnboardingData;
+  onPlanDeleted?: (planId: string) => void;
 }
 
-function WorkoutCard({ plan, onboarding }: WorkoutCardProps) {
+function WorkoutCard({ plan, onboarding, onPlanDeleted }: WorkoutCardProps) {
   const router = useRouter();
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  // Console log workout data when component renders
+  React.useEffect(() => {
+    console.log("💪 [WorkoutCard] Rendering workout plan:", plan.id);
+    console.log("💪 [WorkoutCard] Plan summary:", plan.summary);
+    console.log("💪 [WorkoutCard] Plan workout data:", plan.days);
+    console.log("💪 [WorkoutCard] Plan onboarding:", onboarding);
+
+    // Log data sources being used for display
+    console.log("💪 [WorkoutCard] Data sources used:");
+    console.log(
+      "  - Goal:",
+      plan.days?.meta?.goal || plan.summary?.goal || onboarding?.goal
+    );
+    console.log(
+      "  - Duration:",
+      plan.days?.constraints?.minutesPerSession ||
+        plan.summary?.minutes ||
+        onboarding?.minutesPerSession
+    );
+    console.log(
+      "  - Location:",
+      plan.days?.meta?.location || onboarding?.location
+    );
+    console.log(
+      "  - Days/Week:",
+      plan.days?.sessions?.length ||
+        plan.summary?.daysPerWeek ||
+        onboarding?.daysPerWeek
+    );
+    console.log("  - Created:", plan.createdAt);
+
+    if (plan.days && plan.days.sessions) {
+      console.log(
+        "💪 [WorkoutCard] Workout sessions:",
+        plan.days.sessions.length
+      );
+      plan.days.sessions.forEach((session, index) => {
+        console.log(`💪 [WorkoutCard] Session ${index + 1}: ${session.title}`);
+        console.log(
+          `💪 [WorkoutCard] Session ${index + 1} exercises:`,
+          session.items
+        );
+      });
+    }
+  }, [plan, onboarding]);
 
   // Get workout image based on goal
   const getWorkoutImage = () => {
-    if (!onboarding?.goal) return "🏃‍♂️";
+    // Priority: plan.days.meta.goal > plan.summary.goal > onboarding.goal
+    const goal =
+      plan.days?.meta?.goal || plan.summary?.goal || onboarding?.goal;
 
-    switch (onboarding.goal) {
+    if (!goal) return "🏃‍♂️";
+
+    switch (goal) {
       case "fat_loss":
         return "🔥";
       case "hypertrophy":
@@ -74,8 +149,12 @@ function WorkoutCard({ plan, onboarding }: WorkoutCardProps) {
   };
 
   const getGoal = () => {
-    if (onboarding?.goal) {
-      switch (onboarding.goal) {
+    // Priority: plan.days.meta.goal > plan.summary.goal > onboarding.goal
+    const goal =
+      plan.days?.meta?.goal || plan.summary?.goal || onboarding?.goal;
+
+    if (goal) {
+      switch (goal) {
         case "fat_loss":
           return "Fat Loss";
         case "hypertrophy":
@@ -87,31 +166,47 @@ function WorkoutCard({ plan, onboarding }: WorkoutCardProps) {
         case "general_health":
           return "General Health";
         default:
-          return onboarding.goal;
+          return goal;
       }
     }
     return "General Fitness";
   };
 
   const getLocation = () => {
-    if (onboarding?.location) {
-      return onboarding.location === "gym" ? "Gym Workout" : "Home Workout";
+    // Priority: plan.days.meta.location > onboarding.location
+    const location = plan.days?.meta?.location || onboarding?.location;
+
+    if (location) {
+      return location === "gym" ? "Gym Workout" : "Home Workout";
     }
     return "Workout";
   };
 
   const getDuration = () => {
-    if (onboarding?.minutesPerSession) {
-      return `${onboarding.minutesPerSession} min`;
+    // Priority: plan.days.constraints.minutesPerSession > plan.summary.minutes > onboarding.minutesPerSession
+    const duration =
+      plan.days?.constraints?.minutesPerSession ||
+      plan.summary?.minutes ||
+      onboarding?.minutesPerSession;
+
+    if (duration) {
+      return `${duration} min`;
     }
     return "45 min";
   };
 
   const getDaysPerWeek = () => {
-    if (onboarding?.daysPerWeek) {
-      return `${onboarding.daysPerWeek} days/week`;
+    // Priority: actual sessions count > plan.summary.daysPerWeek > onboarding.daysPerWeek
+    const sessionsCount = plan.days?.sessions?.length;
+    const summaryDays = plan.summary?.daysPerWeek;
+    const onboardingDays = onboarding?.daysPerWeek;
+
+    const daysPerWeek = sessionsCount || summaryDays || onboardingDays;
+
+    if (daysPerWeek) {
+      return `${daysPerWeek} days/week`;
     }
-    return `${plan.days.length} days/week`;
+    return "3 days/week";
   };
 
   const formatDate = (date: Date) => {
@@ -120,6 +215,49 @@ function WorkoutCard({ plan, onboarding }: WorkoutCardProps) {
       day: "numeric",
       year: "numeric",
     }).format(date);
+  };
+
+  const handleDeleteClick = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent card click navigation
+    setShowDeleteModal(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    try {
+      setIsDeleting(true);
+
+      const response = await fetch(`/api/workout/${plan.id}`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to delete workout plan");
+      }
+
+      const result = await response.json();
+
+      if (result.ok) {
+        // Call the callback to remove from UI
+        onPlanDeleted?.(plan.id);
+        setShowDeleteModal(false);
+      } else {
+        throw new Error(result.error || "Failed to delete workout plan");
+      }
+    } catch (error) {
+      console.error("Error deleting workout plan:", error);
+      alert("Failed to delete workout plan. Please try again.");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleDeleteCancel = () => {
+    if (!isDeleting) {
+      setShowDeleteModal(false);
+    }
   };
 
   return (
@@ -139,7 +277,11 @@ function WorkoutCard({ plan, onboarding }: WorkoutCardProps) {
             </p>
           </div>
         </div>
-        <button className="w-10 h-10 bg-red-50 rounded-lg flex items-center justify-center hover:bg-red-100 transition-colors group">
+        <button
+          onClick={handleDeleteClick}
+          className="w-10 h-10 bg-red-50 rounded-lg flex items-center justify-center hover:bg-red-100 transition-colors group"
+          title="Delete workout plan"
+        >
           <svg
             className="w-5 h-5 text-red-600 group-hover:text-red-700"
             fill="none"
@@ -266,14 +408,35 @@ function WorkoutCard({ plan, onboarding }: WorkoutCardProps) {
       >
         Start Workout
       </button>
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showDeleteModal}
+        onClose={handleDeleteCancel}
+        onConfirm={handleDeleteConfirm}
+        title="Delete Workout Plan"
+        message={`Are you sure you want to delete this ${getGoal()} workout plan? This action cannot be undone.`}
+        confirmText="Delete Plan"
+        cancelText="Cancel"
+        isLoading={isDeleting}
+        danger={true}
+      />
     </div>
   );
 }
 
-export default function WorkoutList({ plan, onboarding }: WorkoutListProps) {
+export default function WorkoutList({
+  plan,
+  onboarding,
+  onPlanDeleted,
+}: WorkoutListProps) {
   return (
     <div>
-      <WorkoutCard plan={plan} onboarding={onboarding} />
+      <WorkoutCard
+        plan={plan}
+        onboarding={onboarding}
+        onPlanDeleted={onPlanDeleted}
+      />
     </div>
   );
 }

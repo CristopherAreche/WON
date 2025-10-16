@@ -4,30 +4,51 @@ import { prisma } from "@/lib/db";
 import { redirect } from "next/navigation";
 import WorkoutDetailsClient from "./WorkoutDetailsClient";
 
-interface PlanDay {
-  id?: string;
-  title?: string;
-  focus?: string;
-  estimatedDuration?: number;
-  blocks?: Array<{
-    exerciseId?: string;
-    name?: string;
-    sets?: number;
-    reps?: string;
-    rest?: string;
-    notes?: string;
-  }>;
+interface Exercise {
+  name: string;
+  equipment: "bodyweight" | "bands" | "dumbbells" | "barbell" | "machines";
+  sets: number;
+  reps: number[];
+  notes?: string;
+  reference?: string;
+}
+
+interface WorkoutSession {
+  dayOfWeek: number;
+  title: string;
+  estMinutes: number;
+  items: Exercise[];
+}
+
+interface WorkoutPlanData {
+  description: string;
+  split: string;
+  sessions: WorkoutSession[];
+  constraints: {
+    minutesPerSession: number;
+    injuryNotes?: string;
+  };
+  meta: {
+    goal: string;
+    experience: string;
+    location: string;
+    equipment: string[];
+  };
+}
+
+interface PlanSummary {
+  goal?: string;
+  daysPerWeek?: number;
+  minutes?: number;
+  split?: string;
+  description?: string;
 }
 
 interface WorkoutPlan {
   id: string;
-  summary: {
-    daysPerWeek: number;
-    minutes: number;
-    goal: string;
-  };
-  days: PlanDay[];
-  schedule: string[];
+  summary: PlanSummary;
+  days: WorkoutPlanData;
+  schedule: number[];
   weeks: number;
   createdAt: Date;
 }
@@ -65,9 +86,9 @@ export default async function WorkoutDetailsPage({
   // Cast the Prisma result to our WorkoutPlan type
   const plan: WorkoutPlan = {
     id: workoutPlan.id,
-    summary: workoutPlan.summary as { daysPerWeek: number; minutes: number; goal: string },
-    days: workoutPlan.days as PlanDay[],
-    schedule: workoutPlan.schedule as string[],
+    summary: workoutPlan.summary as PlanSummary,
+    days: workoutPlan.days as unknown as WorkoutPlanData,
+    schedule: workoutPlan.schedule as unknown as number[],
     weeks: workoutPlan.weeks,
     createdAt: workoutPlan.createdAt,
   };

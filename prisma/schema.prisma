@@ -81,12 +81,13 @@ model WorkoutPlan {
   id        String     @id @default(cuid())
   userId    String
   user      User       @relation(fields: [userId], references: [id])
-  summary   Json // { daysPerWeek, minutes, goal }
+  summary   Json // { daysPerWeek, minutes, goal, split, description }
   weeks     Int
-  schedule  Json // ["lun","mie","vie"]
-  days      Json // definición del plan por día
+  schedule  Json // [1,3,5] - day numbers
+  days      Json // complete workout plan with new structure
   onboarding Json?    // snapshot of onboarding data when plan was created
   source    PlanSource
+  model     String?    // AI model used for generation (e.g., "openai/gpt-4o-mini")
   createdAt DateTime   @default(now())
 
   @@index([userId])

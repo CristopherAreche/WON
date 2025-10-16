@@ -1,5 +1,6 @@
 "use client";
 
+import React, { useState } from "react";
 import WelcomeHeader from "@/components/WelcomeHeader";
 import WorkoutList from "@/components/WorkoutList";
 
@@ -7,21 +8,40 @@ interface PlanSummary {
   goal?: string;
   daysPerWeek?: number;
   minutes?: number;
+  split?: string;
+  description?: string;
 }
 
-interface PlanDay {
-  id?: string;
-  title?: string;
-  focus?: string;
-  estimatedDuration?: number;
-  blocks?: Array<{
-    exerciseId?: string;
-    name?: string;
-    sets?: number;
-    reps?: string;
-    rest?: string;
-    notes?: string;
-  }>;
+interface Exercise {
+  name: string;
+  equipment: "bodyweight" | "bands" | "dumbbells" | "barbell" | "machines";
+  sets: number;
+  reps: number[];
+  notes?: string;
+  reference?: string;
+}
+
+interface WorkoutSession {
+  dayOfWeek: number;
+  title: string;
+  estMinutes: number;
+  items: Exercise[];
+}
+
+interface WorkoutPlanData {
+  description: string;
+  split: string;
+  sessions: WorkoutSession[];
+  constraints: {
+    minutesPerSession: number;
+    injuryNotes?: string;
+  };
+  meta: {
+    goal: string;
+    experience: string;
+    location: string;
+    equipment: string[];
+  };
 }
 
 interface User {
@@ -42,7 +62,7 @@ interface OnboardingData {
 interface Plan {
   id: string;
   summary: PlanSummary;
-  days: PlanDay[];
+  days: WorkoutPlanData; // Now contains the complete workout plan structure
   createdAt: Date;
   onboarding?: OnboardingData;
 }
@@ -54,8 +74,44 @@ interface HomePageClientProps {
 
 export default function HomePageClient({
   user,
-  plans,
+  plans: initialPlans,
 }: HomePageClientProps) {
+  const [plans, setPlans] = useState(initialPlans);
+
+  // Console log the workout data when component loads
+  React.useEffect(() => {
+    console.log("🏠 [Home] User data:", user);
+    console.log("🏠 [Home] Initial workout plans loaded:", initialPlans.length);
+    
+    if (initialPlans.length > 0) {
+      console.log("🏠 [Home] Complete workout plans data:", JSON.stringify(initialPlans, null, 2));
+      
+      initialPlans.forEach((plan, index) => {
+        console.log(`🏠 [Home] Plan ${index + 1} - ID: ${plan.id}`);
+        console.log(`🏠 [Home] Plan ${index + 1} - Summary:`, plan.summary);
+        console.log(`🏠 [Home] Plan ${index + 1} - Workout Data:`, plan.days);
+        console.log(`🏠 [Home] Plan ${index + 1} - Sessions:`, plan.days.sessions);
+        
+        if (plan.days.sessions) {
+          plan.days.sessions.forEach((session, sessionIndex) => {
+            console.log(`🏠 [Home] Plan ${index + 1} - Session ${sessionIndex + 1}:`, session.title);
+            console.log(`🏠 [Home] Plan ${index + 1} - Session ${sessionIndex + 1} - Exercises:`, session.items);
+          });
+        }
+        
+        if (plan.onboarding) {
+          console.log(`🏠 [Home] Plan ${index + 1} - Onboarding Data:`, plan.onboarding);
+        }
+      });
+    } else {
+      console.log("🏠 [Home] No workout plans found");
+    }
+  }, [user, initialPlans]);
+
+  const handlePlanDeleted = (planId: string) => {
+    console.log("🏠 [Home] Deleting plan:", planId);
+    setPlans(prevPlans => prevPlans.filter(plan => plan.id !== planId));
+  };
 
   return (
     <div className="p-4 pb-20">
@@ -66,7 +122,12 @@ export default function HomePageClient({
         {plans && plans.length > 0 ? (
           <div className="space-y-6">
             {plans.map((plan) => (
-              <WorkoutList key={plan.id} plan={plan} onboarding={plan.onboarding} />
+              <WorkoutList 
+                key={plan.id} 
+                plan={plan} 
+                onboarding={plan.onboarding}
+                onPlanDeleted={handlePlanDeleted}
+              />
             ))}
           </div>
         ) : (

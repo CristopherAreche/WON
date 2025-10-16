@@ -66,6 +66,7 @@ export default function OnboardingClient({
 }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [loadingStage, setLoadingStage] = useState("");
   const [daysPerWeek, setDaysPerWeek] = useState(3);
   const [minutesPerSession, setMinutesPerSession] = useState(60);
 
@@ -91,13 +92,21 @@ export default function OnboardingClient({
   const onSubmit: SubmitHandler<OnboardingFormData> = async (values) => {
     try {
       setLoading(true);
+      setLoadingStage("Saving your preferences...");
+      console.log("🔵 [Frontend] Submitting onboarding data:", { userId, ...values });
+      
       const res = await fetch("/api/onboarding", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId, ...values }),
       });
       if (!res.ok) throw new Error("Could not save onboarding");
+      
+      const onboardingResponse = await res.json();
+      console.log("🟢 [Frontend] Onboarding saved successfully:", onboardingResponse);
 
+      setLoadingStage("Generating your personalized workout...");
+      console.log("🔵 [Frontend] Requesting AI workout generation...");
       const ai = await fetch("/api/ai/generate-plan", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -105,17 +114,68 @@ export default function OnboardingClient({
       });
       if (!ai.ok) throw new Error("Could not generate plan");
 
+      const aiResponse = await ai.json();
+      console.log("🟢 [Frontend] AI workout plan generated:", aiResponse);
+
+      setLoadingStage("Preparing your workout plan...");
+      
+      // Small delay to show the final stage
+      await new Promise(resolve => setTimeout(resolve, 800));
+
       router.replace("/app/home");
     } catch (e) {
+      console.error("🔴 [Frontend] Error during onboarding:", e);
       alert((e as Error).message);
     } finally {
       setLoading(false);
+      setLoadingStage("");
     }
   };
 
   return (
-    <div className="flex items-center justify-center p-8 min-h-full">
-      <div className="bg-white rounded-2xl p-8 w-full max-w-lg shadow-lg">
+    <div className="flex items-center justify-center p-8 min-h-full relative">
+      {/* Loading Overlay */}
+      {loading && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl p-8 w-full max-w-md mx-4 shadow-xl">
+            <div className="text-center space-y-6">
+              {/* Animated Loading Icon */}
+              <div className="w-16 h-16 mx-auto">
+                <div className="w-16 h-16 border-4 border-gray-200 border-t-black rounded-full animate-spin"></div>
+              </div>
+              
+              {/* Loading Text */}
+              <div className="space-y-2">
+                <h3 className="text-xl font-semibold text-black">
+                  Generating Your Workout
+                </h3>
+                <p className="text-gray-600">
+                  {loadingStage || "Our AI is creating a personalized workout plan just for you..."}
+                </p>
+              </div>
+              
+              {/* Progress Indicator */}
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div 
+                  className="bg-black h-2 rounded-full transition-all duration-1000 ease-out" 
+                  style={{ 
+                    width: loadingStage.includes("Saving") ? '30%' : 
+                           loadingStage.includes("Generating") ? '70%' : 
+                           loadingStage.includes("Preparing") ? '95%' : '20%' 
+                  }}
+                ></div>
+              </div>
+              
+              <p className="text-sm text-gray-500">
+                This may take a few seconds
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Main Content */}
+      <div className={`bg-white rounded-2xl p-8 w-full max-w-lg shadow-lg transition-all duration-300 ${loading ? 'blur-sm pointer-events-none' : ''}`}>
         <h1 className="text-2xl font-semibold text-black mb-6 text-center">
           Hello {userName.split("@")[0]}! Tell me about your workout
         </h1>
@@ -280,9 +340,12 @@ export default function OnboardingClient({
 
           <button
             disabled={loading}
-            className="w-full bg-black text-white py-3 rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-60"
+            className="w-full bg-black text-white py-3 rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
-            {loading ? "Generating..." : "Generate Workout"}
+            {loading && (
+              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+            )}
+            {loading ? "Generating Your Workout..." : "Generate Workout"}
           </button>
         </form>
       </div>

@@ -1,67 +1,73 @@
 "use client";
 
-import { useState } from "react";
-import WorkoutDetails from "@/components/WorkoutDetails";
+import React, { useState } from "react";
+import { useRouter } from "next/navigation";
 
 interface Exercise {
-  exerciseId?: string;
-  name?: string;
-  sets?: number;
-  reps?: string;
-  rest?: string;
+  name: string;
+  equipment: "bodyweight" | "bands" | "dumbbells" | "barbell" | "machines";
+  sets: number;
+  reps: number[];
   notes?: string;
+  reference?: string;
 }
 
-interface PlanDay {
-  id?: string;
-  title?: string;
-  focus?: string;
-  estimatedDuration?: number;
-  blocks?: Exercise[];
+interface WorkoutSession {
+  dayOfWeek: number;
+  title: string;
+  estMinutes: number;
+  items: Exercise[];
+}
+
+interface WorkoutPlanData {
+  description: string;
+  split: string;
+  sessions: WorkoutSession[];
+  constraints: {
+    minutesPerSession: number;
+    injuryNotes?: string;
+  };
+  meta: {
+    goal: string;
+    experience: string;
+    location: string;
+    equipment: string[];
+  };
+}
+
+interface PlanSummary {
+  goal?: string;
+  daysPerWeek?: number;
+  minutes?: number;
+  split?: string;
+  description?: string;
 }
 
 interface WorkoutPlan {
   id: string;
-  summary: {
-    daysPerWeek: number;
-    minutes: number;
-    goal: string;
-  };
-  days: PlanDay[];
-  schedule: string[];
+  summary: PlanSummary;
+  days: WorkoutPlanData;
+  schedule: number[];
   weeks: number;
   createdAt: Date;
-}
-
-interface User {
-  id: string;
-  name: string | null;
-  email: string;
 }
 
 interface WorkoutDetailsClientProps {
   plan: WorkoutPlan;
   selectedDay: number;
-  user: User;
 }
 
-// Toggle component for individual workout days
-function WorkoutDayToggle({
-  day,
+// Day Header Component
+function DayHeader({
+  session,
   isOpen,
   onToggle,
-  dayNumber,
   completionStatus,
-  exerciseCompletion,
-  onExerciseToggle,
 }: {
-  day: PlanDay;
+  session: WorkoutSession;
   isOpen: boolean;
   onToggle: () => void;
-  dayNumber: number;
   completionStatus: "red" | "yellow" | "green";
-  exerciseCompletion: Record<string, boolean>;
-  onExerciseToggle: (exerciseIndex: number) => void;
 }) {
   const getStatusColor = () => {
     switch (completionStatus) {
@@ -72,126 +78,219 @@ function WorkoutDayToggle({
       case "red":
         return "bg-red-500";
       default:
-        return "bg-red-500";
+        return "bg-gray-400";
     }
   };
+
+  const getDayName = (dayOfWeek: number) => {
+    const days = [
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday",
+      "Saturday",
+      "Sunday",
+    ];
+    return days[dayOfWeek - 1] || `Day ${dayOfWeek}`;
+  };
+
   return (
-    <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
-      {/* Toggle Header */}
-      <button
-        onClick={onToggle}
-        className="w-full p-4 text-left hover:bg-gray-50 transition-colors flex items-center justify-between"
-      >
-        <div className="flex-1">
-          <div className="flex items-center space-x-4">
-            <div
-              className={`w-12 h-12 ${getStatusColor()} rounded-full flex items-center justify-center`}
-            >
-              <div className="w-2 h-2 bg-white rounded-full"></div>
-            </div>
-            <div>
-              <h3 className="text-xl font-semibold text-black">
-                DAY {dayNumber + 1}
-              </h3>
-              {day.focus && (
-                <p className="text-gray-600 text-sm">{day.focus}</p>
-              )}
-              <div className="flex items-center space-x-4 mt-1">
-                <span className="text-sm text-gray-500">
-                  {day.blocks?.length || 0} exercises
-                </span>
-                {day.estimatedDuration && (
-                  <span className="text-sm text-gray-500">
-                    {day.estimatedDuration} min
-                  </span>
-                )}
-              </div>
-            </div>
+    <button
+      onClick={onToggle}
+      className="w-full p-6 text-left hover:bg-gray-50 transition-colors flex items-center justify-between"
+    >
+      <div className="flex items-center space-x-4">
+        <div
+          className={`w-12 h-12 ${getStatusColor()} rounded-full flex items-center justify-center`}
+        >
+          <div className="w-3 h-3 bg-white rounded-full"></div>
+        </div>
+        <div>
+          <h3 className="text-xl font-semibold text-black">
+            {getDayName(session.dayOfWeek)}
+          </h3>
+          <p className="text-gray-600 text-sm">{session.title}</p>
+          <div className="flex items-center space-x-4 mt-1">
+            <span className="text-sm text-gray-500">
+              {session.items.length} exercises
+            </span>
+            <span className="text-sm text-gray-500">
+              ~{session.estMinutes} min
+            </span>
           </div>
         </div>
+      </div>
 
-        {/* Toggle Icon */}
-        <div
-          className={`transform transition-transform duration-200 ${
-            isOpen ? "rotate-180" : ""
+      <div
+        className={`transform transition-transform duration-200 ${
+          isOpen ? "rotate-180" : ""
+        }`}
+      >
+        <svg
+          className="w-6 h-6 text-gray-400"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth="2"
+            d="M19 9l-7 7-7-7"
+          />
+        </svg>
+      </div>
+    </button>
+  );
+}
+
+// Exercise Item Component
+function ExerciseItem({
+  exercise,
+  exerciseIndex,
+  sessionIndex,
+  isCompleted,
+  onToggle,
+  onVideoClick,
+}: {
+  exercise: Exercise;
+  exerciseIndex: number;
+  sessionIndex: number;
+  isCompleted: boolean;
+  onToggle: () => void;
+  onVideoClick: (exerciseName: string, videoUrl: string) => void;
+}) {
+  const formatReps = (reps: number[]) => {
+    if (reps.length === 1) return `${reps[0]} reps`;
+    return reps.join(" / ") + " reps";
+  };
+
+  return (
+    <div className="bg-gray-50 rounded-xl p-4 hover:bg-gray-100 transition-colors">
+      <div className="flex items-start justify-between">
+        <div className="flex-1">
+          <div className="flex items-center justify-between mb-2">
+            <div>
+              <h4 className="font-semibold text-black">{exercise.name}</h4>
+              <p className="text-sm text-gray-600 capitalize">
+                {exercise.equipment.replace("_", " ")}
+              </p>
+            </div>
+            
+            {exercise.reference && (
+              <button
+                onClick={() => onVideoClick(exercise.name, exercise.reference!)}
+                className="px-3 py-1 bg-blue-100 text-blue-700 text-xs rounded-full hover:bg-blue-200 transition-colors"
+              >
+                Watch Demo
+              </button>
+            )}
+          </div>
+
+          <div className="flex items-center space-x-4 mb-2">
+            <span className="text-sm font-medium text-gray-700">
+              {exercise.sets} sets × {formatReps(exercise.reps)}
+            </span>
+          </div>
+
+          {exercise.notes && (
+            <p className="text-sm text-gray-600 mb-3 bg-blue-50 p-2 rounded border-l-2 border-blue-200">
+              {exercise.notes}
+            </p>
+          )}
+        </div>
+
+        <button
+          onClick={onToggle}
+          className={`w-8 h-8 rounded-full border-2 flex items-center justify-center transition-colors ml-4 flex-shrink-0 ${
+            isCompleted
+              ? "bg-green-500 border-green-500"
+              : "border-gray-300 hover:border-gray-400"
           }`}
         >
-          <svg
-            className="w-6 h-6 text-gray-400"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              d="M19 9l-7 7-7-7"
-            />
-          </svg>
-        </div>
-      </button>
+          {isCompleted && (
+            <svg
+              className="w-5 h-5 text-white"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M5 13l4 4L19 7"
+              />
+            </svg>
+          )}
+        </button>
+      </div>
+    </div>
+  );
+}
 
-      {/* Collapsible Content */}
+// Session Component
+function WorkoutSessionComponent({
+  session,
+  sessionIndex,
+  isOpen,
+  onToggle,
+  exerciseCompletion,
+  onExerciseToggle,
+  onVideoClick,
+}: {
+  session: WorkoutSession;
+  sessionIndex: number;
+  isOpen: boolean;
+  onToggle: () => void;
+  exerciseCompletion: Record<string, boolean>;
+  onExerciseToggle: (sessionIndex: number, exerciseIndex: number) => void;
+  onVideoClick: (exerciseName: string, videoUrl: string) => void;
+}) {
+  const getCompletionStatus = () => {
+    if (!session.items || session.items.length === 0) return "red";
+
+    const completedCount = session.items.filter(
+      (_, exerciseIndex) =>
+        exerciseCompletion[`${sessionIndex}-${exerciseIndex}`]
+    ).length;
+
+    if (completedCount === 0) return "red";
+    if (completedCount === session.items.length) return "green";
+    return "yellow";
+  };
+
+  return (
+    <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
+      <DayHeader
+        session={session}
+        isOpen={isOpen}
+        onToggle={onToggle}
+        completionStatus={getCompletionStatus()}
+      />
+
       {isOpen && (
         <div className="px-6 pb-6 border-t border-gray-100">
           <div className="space-y-4 mt-4">
-            {day.blocks?.map((exercise, exerciseIndex) => (
-              <div
+            {session.items.map((exercise, exerciseIndex) => (
+              <ExerciseItem
                 key={exerciseIndex}
-                className="bg-gray-50 rounded-xl p-4 hover:bg-gray-100 transition-colors"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <span className="font-medium text-black">
-                          {exercise.name ||
-                            exercise.exerciseId ||
-                            `Exercise ${exerciseIndex + 1}`}
-                        </span>
-                        {exercise.sets && exercise.reps && (
-                          <span className="text-sm text-gray-600 ml-2">
-                            {exercise.sets} x {exercise.reps}
-                          </span>
-                        )}
-                      </div>
-
-                      <button
-                        onClick={() => onExerciseToggle(exerciseIndex)}
-                        className={`w-6 h-6 rounded border-2 flex items-center justify-center transition-colors ${
-                          exerciseCompletion[`${dayNumber}-${exerciseIndex}`]
-                            ? "bg-green-500 border-green-500"
-                            : "border-gray-300 hover:border-gray-400"
-                        }`}
-                      >
-                        {exerciseCompletion[
-                          `${dayNumber}-${exerciseIndex}`
-                        ] && (
-                          <svg
-                            className="w-4 h-4 text-white"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth="2"
-                              d="M5 13l4 4L19 7"
-                            />
-                          </svg>
-                        )}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
+                exercise={exercise}
+                exerciseIndex={exerciseIndex}
+                sessionIndex={sessionIndex}
+                isCompleted={
+                  exerciseCompletion[`${sessionIndex}-${exerciseIndex}`] ||
+                  false
+                }
+                onToggle={() => onExerciseToggle(sessionIndex, exerciseIndex)}
+                onVideoClick={onVideoClick}
+              />
             ))}
 
-            {(!day.blocks || day.blocks.length === 0) && (
+            {(!session.items || session.items.length === 0) && (
               <div className="text-center py-8 text-gray-500">
-                <p>No exercises found for this day</p>
+                <p>No exercises found for this session</p>
               </div>
             )}
           </div>
@@ -204,77 +303,305 @@ function WorkoutDayToggle({
 export default function WorkoutDetailsClient({
   plan,
   selectedDay,
-}: Omit<WorkoutDetailsClientProps, "user">) {
-  const [openDays, setOpenDays] = useState<Set<number>>(new Set([selectedDay]));
+}: WorkoutDetailsClientProps) {
+  const router = useRouter();
+  const [openSessions, setOpenSessions] = useState<Set<number>>(
+    new Set([selectedDay])
+  );
   const [exerciseCompletion, setExerciseCompletion] = useState<
     Record<string, boolean>
   >({});
+  const [isOverviewOpen, setIsOverviewOpen] = useState(false);
+  const [videoModal, setVideoModal] = useState<{
+    isOpen: boolean;
+    exerciseName: string;
+    videoUrl: string;
+  }>({ isOpen: false, exerciseName: "", videoUrl: "" });
+
+  // Load saved exercise completion from localStorage on component mount
+  React.useEffect(() => {
+    console.log("🏋️ [WorkoutDetails] Plan data:", plan);
+    console.log("🏋️ [WorkoutDetails] Workout sessions:", plan.days.sessions);
+    console.log("🏋️ [WorkoutDetails] Meta data:", plan.days.meta);
+    console.log("🏋️ [WorkoutDetails] Constraints:", plan.days.constraints);
+    
+    // Load saved progress from localStorage
+    const savedProgress = localStorage.getItem(`workout_progress_${plan.id}`);
+    if (savedProgress) {
+      try {
+        const progress = JSON.parse(savedProgress);
+        setExerciseCompletion(progress);
+        console.log("📱 Loaded saved workout progress:", progress);
+      } catch (error) {
+        console.error("Error loading saved progress:", error);
+      }
+    }
+  }, [plan]);
+
+  // Save exercise completion to localStorage whenever it changes
+  React.useEffect(() => {
+    if (Object.keys(exerciseCompletion).length > 0) {
+      localStorage.setItem(`workout_progress_${plan.id}`, JSON.stringify(exerciseCompletion));
+      console.log("💾 Saved workout progress to localStorage");
+    }
+  }, [exerciseCompletion, plan.id]);
 
   const toggleExerciseCompletion = (
-    dayIndex: number,
+    sessionIndex: number,
     exerciseIndex: number
   ) => {
-    const key = `${dayIndex}-${exerciseIndex}`;
+    const key = `${sessionIndex}-${exerciseIndex}`;
     setExerciseCompletion((prev) => ({
       ...prev,
       [key]: !prev[key],
     }));
   };
 
-  const getDayCompletionStatus = (
-    dayIndex: number,
-    exercises: Exercise[] = []
-  ) => {
-    if (!exercises || exercises.length === 0) return "red";
-
-    const completedCount = exercises.filter(
-      (_, exerciseIndex) => exerciseCompletion[`${dayIndex}-${exerciseIndex}`]
-    ).length;
-
-    if (completedCount === 0) return "red";
-    if (completedCount === exercises.length) return "green";
-    return "yellow";
+  const toggleSession = (sessionIndex: number) => {
+    const newOpenSessions = new Set(openSessions);
+    if (newOpenSessions.has(sessionIndex)) {
+      newOpenSessions.delete(sessionIndex);
+    } else {
+      newOpenSessions.add(sessionIndex);
+    }
+    setOpenSessions(newOpenSessions);
   };
 
-  const toggleDay = (dayIndex: number) => {
-    const newOpenDays = new Set(openDays);
-    if (newOpenDays.has(dayIndex)) {
-      newOpenDays.delete(dayIndex);
-    } else {
-      newOpenDays.add(dayIndex);
+  const openVideoModal = (exerciseName: string, videoUrl: string) => {
+    setVideoModal({
+      isOpen: true,
+      exerciseName,
+      videoUrl
+    });
+  };
+
+  const closeVideoModal = () => {
+    setVideoModal({
+      isOpen: false,
+      exerciseName: "",
+      videoUrl: ""
+    });
+  };
+
+  const getGoalDisplay = () => {
+    const goal = plan.days?.meta?.goal || plan.summary?.goal || "fitness";
+    switch (goal) {
+      case "fat_loss":
+        return "Fat Loss";
+      case "hypertrophy":
+        return "Muscle Building";
+      case "strength":
+        return "Strength Building";
+      case "returning":
+        return "Return to Training";
+      case "general_health":
+        return "General Health";
+      default:
+        return goal;
     }
-    setOpenDays(newOpenDays);
   };
 
   return (
-    <div className="bg-black p-4 pb-20">
-      <div className="max-w-4xl mx-auto">
-        {/* Workout Details Header */}
-        <div className="mb-6">
-          <WorkoutDetails
-            workoutName={plan.summary.goal || "Your Workout Plan"}
-            workoutGoal={plan.summary.goal || "fitness"}
-          />
+    <div className="bg-black min-h-screen">
+      {/* Header */}
+
+      {/* Workout Plan Info - Toggle List */}
+      <div className="max-w-4xl mx-auto px-4 py-6">
+        <div className="bg-white rounded-2xl shadow-lg overflow-hidden mb-6">
+          {/* Toggle Header */}
+          <button
+            onClick={() => setIsOverviewOpen(!isOverviewOpen)}
+            className="w-full p-6 text-left hover:bg-gray-50 transition-colors flex items-center justify-between"
+          >
+            <div className="flex items-center space-x-4">
+              {/* Document Icon */}
+              <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+                <svg
+                  className="w-6 h-6 text-blue-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                  />
+                </svg>
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold text-black">
+                  Plan Overview
+                </h2>
+                <p className="text-sm text-gray-500">
+                  {isOverviewOpen ? "Hide details" : "View plan details"}
+                </p>
+              </div>
+            </div>
+
+            {/* Toggle Arrow */}
+            <div
+              className={`transform transition-transform duration-200 ${
+                isOverviewOpen ? "rotate-180" : ""
+              }`}
+            >
+              <svg
+                className="w-6 h-6 text-gray-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M19 9l-7 7-7-7"
+                />
+              </svg>
+            </div>
+          </button>
+
+          {/* Collapsible Content */}
+          {isOverviewOpen && (
+            <div className="px-6 pb-6 border-t border-gray-100">
+              <div className="space-y-4 mt-4">
+                {/* Description */}
+                <div className="bg-gray-50 rounded-xl p-4">
+                  <h3 className="font-medium text-black mb-2">Description</h3>
+                  <p className="text-gray-700 text-sm leading-relaxed">
+                    {plan.days.description}
+                  </p>
+                </div>
+
+                {/* Stats Grid */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="text-center bg-gray-50 rounded-xl p-3">
+                    <div className="text-xl font-bold text-black">
+                      {plan.days.sessions.length}
+                    </div>
+                    <div className="text-xs text-gray-500">Sessions</div>
+                  </div>
+                  <div className="text-center bg-gray-50 rounded-xl p-3">
+                    <div className="text-xl font-bold text-black">
+                      ~{plan.days.constraints.minutesPerSession}
+                    </div>
+                    <div className="text-xs text-gray-500">Minutes</div>
+                  </div>
+                  <div className="text-center bg-gray-50 rounded-xl p-3">
+                    <div className="text-xl font-bold text-black">
+                      {plan.days.meta.location === "gym" ? "Gym" : "Home"}
+                    </div>
+                    <div className="text-xs text-gray-500">Location</div>
+                  </div>
+                  <div className="text-center bg-gray-50 rounded-xl p-3">
+                    <div className="text-xl font-bold text-black">
+                      {plan.days.meta.equipment.length}
+                    </div>
+                    <div className="text-xs text-gray-500">Equipment Types</div>
+                  </div>
+                </div>
+
+                {/* Injury Notes */}
+                {plan.days.constraints.injuryNotes && (
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
+                    <div className="flex items-start space-x-3">
+                      <div className="w-6 h-6 bg-yellow-200 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <svg
+                          className="w-4 h-4 text-yellow-600"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth="2"
+                            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"
+                          />
+                        </svg>
+                      </div>
+                      <div>
+                        <h4 className="font-medium text-yellow-800 mb-1">
+                          Important Note
+                        </h4>
+                        <p className="text-sm text-yellow-700">
+                          {plan.days.constraints.injuryNotes}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Workout Days List */}
+        {/* Workout Sessions */}
         <div className="space-y-4">
-          {plan.days.map((day, index) => (
-            <WorkoutDayToggle
+          {plan.days.sessions.map((session, index) => (
+            <WorkoutSessionComponent
               key={index}
-              day={day}
-              dayNumber={index}
-              isOpen={openDays.has(index)}
-              onToggle={() => toggleDay(index)}
-              completionStatus={getDayCompletionStatus(index, day.blocks)}
+              session={session}
+              sessionIndex={index}
+              isOpen={openSessions.has(index)}
+              onToggle={() => toggleSession(index)}
               exerciseCompletion={exerciseCompletion}
-              onExerciseToggle={(exerciseIndex) =>
-                toggleExerciseCompletion(index, exerciseIndex)
-              }
+              onExerciseToggle={toggleExerciseCompletion}
+              onVideoClick={openVideoModal}
             />
           ))}
         </div>
       </div>
+
+      {/* Video Modal */}
+      {videoModal.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl w-full max-w-4xl mx-4 max-h-[90vh] overflow-hidden shadow-2xl">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <h2 className="text-xl font-semibold text-black">
+                How to perform this exercise?
+              </h2>
+              <button
+                onClick={closeVideoModal}
+                className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center hover:bg-gray-200 transition-colors"
+              >
+                <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-6">
+              <h3 className="text-lg font-medium text-black mb-4">{videoModal.exerciseName}</h3>
+              
+              {/* Video Embed */}
+              <div className="aspect-video bg-gray-100 rounded-xl overflow-hidden">
+                {videoModal.videoUrl ? (
+                  <iframe
+                    src={videoModal.videoUrl.replace('watch?v=', 'embed/')}
+                    title={`${videoModal.exerciseName} demonstration`}
+                    className="w-full h-full border-0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-gray-500">
+                    <div className="text-center">
+                      <svg className="w-16 h-16 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1.01M15 10h1.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <p>Video not available</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

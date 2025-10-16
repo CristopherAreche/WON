@@ -69,6 +69,10 @@ export default function Header() {
     (isOnboardingPage && isReturningUser)
   );
 
+  // Show sandwich icon when logged in and on app routes or onboarding
+  const isAppRoute = pathname?.startsWith('/app/');
+  const showSandwichIcon = session?.user && (isAppRoute || isOnboardingPage);
+
   const handleBack = () => {
     router.back();
   };
@@ -103,7 +107,7 @@ export default function Header() {
             <h1 className="text-2xl font-black text-black">WON</h1>
           </button>
           <div className="flex-1 flex justify-end">
-            {session?.user && (
+            {showSandwichIcon && (
               <button
                 onClick={() => setSidebarOpen(true)}
                 className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
