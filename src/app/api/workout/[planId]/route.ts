@@ -7,7 +7,7 @@ import { prisma } from "@/lib/db";
 
 export async function DELETE(
   req: Request,
-  { params }: { params: { planId: string } }
+  { params }: { params: Promise<{ planId: string }> }
 ) {
   try {
     // Check authentication
@@ -26,7 +26,7 @@ export async function DELETE(
       return NextResponse.json({ error: "USER_NOT_FOUND" }, { status: 404 });
     }
 
-    const { planId } = params;
+    const { planId } = await params;
 
     if (!planId) {
       return NextResponse.json({ error: "PLAN_ID_REQUIRED" }, { status: 400 });
@@ -74,7 +74,7 @@ export async function DELETE(
 // GET endpoint to fetch specific workout plan details
 export async function GET(
   req: Request,
-  { params }: { params: { planId: string } }
+  { params }: { params: Promise<{ planId: string }> }
 ) {
   try {
     // Check authentication
@@ -93,7 +93,7 @@ export async function GET(
       return NextResponse.json({ error: "USER_NOT_FOUND" }, { status: 404 });
     }
 
-    const { planId } = params;
+    const { planId } = await params;
 
     if (!planId) {
       return NextResponse.json({ error: "PLAN_ID_REQUIRED" }, { status: 400 });
