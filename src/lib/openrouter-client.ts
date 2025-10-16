@@ -130,10 +130,28 @@ export function getOpenRouterClient(): OpenRouterClient | null {
   }
 
   if (!openRouterInstance) {
+    // Determine site URL based on environment
+    const getSiteUrl = () => {
+      const envUrl = process.env.OPENROUTER_SITE_URL;
+      
+      // If comma-separated URLs, use the appropriate one based on environment
+      if (envUrl?.includes(',')) {
+        const urls = envUrl.split(',').map(url => url.trim());
+        // In production (Vercel), use the HTTPS URL
+        if (process.env.VERCEL_URL || process.env.NODE_ENV === 'production') {
+          return urls.find(url => url.startsWith('https://')) || urls[0];
+        }
+        // In development, use localhost
+        return urls.find(url => url.includes('localhost')) || urls[0];
+      }
+      
+      return envUrl;
+    };
+
     openRouterInstance = new OpenRouterClient({
       apiKey: process.env.OPENROUTER_API_KEY,
       appName: process.env.OPENROUTER_APP_NAME,
-      siteUrl: process.env.OPENROUTER_SITE_URL,
+      siteUrl: getSiteUrl(),
       model: 'openai/gpt-4o-mini', // Default model
     });
   }
