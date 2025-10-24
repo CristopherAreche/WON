@@ -89,16 +89,7 @@ function DayHeader({
   };
 
   const getDayName = (dayOfWeek: number) => {
-    const days = [
-      "Monday",
-      "Tuesday",
-      "Wednesday",
-      "Thursday",
-      "Friday",
-      "Saturday",
-      "Sunday",
-    ];
-    return days[dayOfWeek - 1] || `Day ${dayOfWeek}`;
+    return `Day ${dayOfWeek}`;
   };
 
   return (
