@@ -61,7 +61,7 @@ export default function LoginForm() {
       ...values,
       redirect: false,
     });
-    
+
     if (result?.ok) {
       router.push(callbackUrl);
     } else {
@@ -70,119 +70,100 @@ export default function LoginForm() {
   }
 
   return (
-    <div className="flex items-center justify-center p-8 min-h-full">
-      <div className="bg-white rounded-2xl p-8 w-full max-w-md shadow-lg">
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <h1 className="text-2xl font-semibold text-black mb-6 text-center">
-            Login
-          </h1>
+    <div className="relative flex min-h-screen w-full flex-col max-w-md mx-auto shadow-2xl overflow-hidden bg-[#F9FAFB] justify-center font-display text-slate-900">
+      {/* Background Blurs */}
+      <div className="absolute top-[-10%] right-[-10%] w-[70%] h-[40%] bg-accent-periwinkle/60 rounded-full blur-[80px] pointer-events-none opacity-80"></div>
+      <div className="absolute bottom-[-10%] left-[-20%] w-[60%] h-[40%] bg-accent-seafoam/40 rounded-full blur-[70px] pointer-events-none opacity-50"></div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Email
-            </label>
-            <input
-              type="email"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
-              onKeyDown={preventEmojiInput}
-              placeholder="example@email.com"
-              {...register("email")}
-            />
+      <div className="relative z-10 w-full px-8 flex flex-col items-center">
+        <div className="mb-12 flex flex-col items-center gap-3">
+          <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center shadow-sm">
+            <span className="material-symbols-outlined text-primary text-4xl">fitness_center</span>
+          </div>
+          <h2 className="text-2xl font-bold tracking-tight text-slate-900">WON</h2>
+        </div>
+
+        <div className="w-full text-center mb-10">
+          <h1 className="text-3xl font-light text-slate-900 mb-2 tracking-tight">Welcome Back</h1>
+          <p className="text-slate-500 text-sm">Please sign in to continue your journey</p>
+        </div>
+
+        <form onSubmit={handleSubmit(onSubmit)} className="w-full space-y-5">
+          <div className="space-y-1">
+            <label className="sr-only" htmlFor="email">Email</label>
+            <div className="relative">
+              <input
+                id="email"
+                type="email"
+                className={`w-full px-5 py-4 bg-white border ${errors.email ? 'border-red-500 focus:ring-red-500/20' : 'border-slate-200 focus:ring-primary/20 focus:border-primary'} rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 transition-all shadow-sm text-sm`}
+                onKeyDown={preventEmojiInput}
+                placeholder="Email"
+                {...register("email")}
+              />
+            </div>
             {errors.email && (
-              <p className="text-sm text-red-600 mt-1">
-                {errors.email.message}
-              </p>
+              <p className="text-sm text-red-500 px-1">{errors.email.message}</p>
             )}
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Password
-            </label>
-            <div className="relative">
+          <div className="space-y-1">
+            <label className="sr-only" htmlFor="password">Password</label>
+            <div className="relative flex items-center">
               <input
+                id="password"
                 type={showPassword ? "text" : "password"}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 pr-10 focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
+                className={`w-full px-5 py-4 bg-white border ${errors.password ? 'border-red-500 focus:ring-red-500/20' : 'border-slate-200 focus:ring-primary/20 focus:border-primary'} rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 transition-all shadow-sm text-sm pr-12`}
                 onKeyDown={preventEmojiInput}
-                placeholder="Enter your password"
+                placeholder="Password"
                 {...register("password")}
               />
               <button
                 type="button"
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
+                className="absolute right-4 text-slate-400 hover:text-slate-600 focus:outline-none transition-colors"
                 onClick={() => setShowPassword(!showPassword)}
               >
-                {showPassword ? (
-                  <svg
-                    className="w-5 h-5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L8.05 8.05M14.12 14.12l1.829 1.829"
-                    />
-                  </svg>
-                ) : (
-                  <svg
-                    className="w-5 h-5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                    />
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                    />
-                  </svg>
-                )}
+                <span className="material-symbols-outlined text-[20px]">
+                  {showPassword ? "visibility_off" : "visibility"}
+                </span>
               </button>
             </div>
             {errors.password && (
-              <p className="text-sm text-red-600 mt-1">
-                {errors.password.message}
-              </p>
+              <p className="text-sm text-red-500 px-1">{errors.password.message}</p>
             )}
           </div>
 
-          {errorMsg && <p className="text-sm text-red-600">{errorMsg}</p>}
+          <div className="flex justify-end pt-1">
+            <Link
+              className="text-sm font-medium text-slate-500 hover:text-primary transition-colors"
+              href="/auth/reset-password-token"
+            >
+              Forgot Password?
+            </Link>
+          </div>
+
+          {errorMsg && (
+            <div className="bg-red-50 text-red-500 px-4 py-3 rounded-xl text-sm text-center border border-red-100 mt-2">
+              {errorMsg}
+            </div>
+          )}
 
           <button
+            type="submit"
             disabled={isSubmitting}
-            className="w-full bg-black text-white py-3 rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-60"
+            className="w-full bg-primary hover:bg-blue-700 text-white font-medium text-lg py-4 rounded-xl shadow-lg shadow-primary/20 transform active:scale-[0.98] transition-all flex items-center justify-center gap-2 mt-4 disabled:opacity-70 disabled:hover:bg-primary disabled:active:scale-100"
           >
-            {isSubmitting ? "Signing in..." : "Sign in"}
+            {isSubmitting ? "Signing in..." : "Sign In"}
           </button>
-
-          <div className="text-center space-y-2">
-            <Link
-              href="/auth/reset-password-token"
-              className="text-sm text-blue-600 hover:text-blue-500 block"
-            >
-              Forgot your password?
-            </Link>
-            <p className="text-sm text-gray-600">
-              Don&apos;t have an account?{" "}
-              <Link
-                href="/auth/signup"
-                className="text-black underline hover:no-underline"
-              >
-                Create account
-              </Link>
-            </p>
-          </div>
         </form>
+
+        <div className="mt-8 text-center">
+          <p className="text-slate-500 text-sm">
+            Don&apos;t have an account?
+            <Link className="font-semibold text-primary hover:text-blue-700 transition-colors ml-1" href="/auth/signup">
+              Sign Up
+            </Link>
+          </p>
+        </div>
       </div>
     </div>
   );

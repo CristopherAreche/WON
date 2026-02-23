@@ -24,6 +24,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
+        <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
         <script
           dangerouslySetInnerHTML={{
             __html: `
@@ -53,10 +54,8 @@ export default function RootLayout({
       >
         <Providers>
           <Suspense fallback={<div className="w-full py-2 bg-white border-b border-gray-200 h-16" />}>
-            <Header />
           </Suspense>
-          <main className="flex-1 bg-black overflow-y-auto">{children}</main>
-          <Footer />
+          <main className="flex-1 overflow-y-auto bg-white">{children}</main>
         </Providers>
       </body>
     </html>
