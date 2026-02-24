@@ -12,6 +12,9 @@ export async function POST(req: Request) {
       experience,
       daysPerWeek,
       minutesPerSession,
+
+
+
       equipment,
       injuries,
       location,
@@ -79,9 +82,9 @@ export async function POST(req: Request) {
 
       console.log("🟢 [API] Onboarding saved successfully (with current schema):", saved.userId);
       console.log("⚠️ [API] Note: New fields (currentWeight, height, age, location array) not saved yet - database migration pending");
-      
-      return NextResponse.json({ 
-        ok: true, 
+
+      return NextResponse.json({
+        ok: true,
         onboardingId: saved.userId,
         note: "Saved with current schema - new fields pending migration"
       });

@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState } from "react";
-import WelcomeHeader from "@/components/WelcomeHeader";
 import WorkoutList from "@/components/WorkoutList";
 
 interface PlanSummary {
@@ -62,7 +61,7 @@ interface OnboardingData {
 interface Plan {
   id: string;
   summary: PlanSummary;
-  days: WorkoutPlanData; // Now contains the complete workout plan structure
+  days: WorkoutPlanData;
   createdAt: Date;
   onboarding?: OnboardingData;
 }
@@ -78,95 +77,61 @@ export default function HomePageClient({
 }: HomePageClientProps) {
   const [plans, setPlans] = useState(initialPlans);
 
-  // Console log the workout data when component loads
   React.useEffect(() => {
-    console.log("🏠 [Home] User data:", user);
-    console.log("🏠 [Home] Initial workout plans loaded:", initialPlans.length);
-    
-    if (initialPlans.length > 0) {
-      console.log("🏠 [Home] Complete workout plans data:", JSON.stringify(initialPlans, null, 2));
-      
-      initialPlans.forEach((plan, index) => {
-        console.log(`🏠 [Home] Plan ${index + 1} - ID: ${plan.id}`);
-        console.log(`🏠 [Home] Plan ${index + 1} - Summary:`, plan.summary);
-        console.log(`🏠 [Home] Plan ${index + 1} - Workout Data:`, plan.days);
-        console.log(`🏠 [Home] Plan ${index + 1} - Sessions:`, plan.days.sessions);
-        
-        if (plan.days.sessions) {
-          plan.days.sessions.forEach((session, sessionIndex) => {
-            console.log(`🏠 [Home] Plan ${index + 1} - Session ${sessionIndex + 1}:`, session.title);
-            console.log(`🏠 [Home] Plan ${index + 1} - Session ${sessionIndex + 1} - Exercises:`, session.items);
-          });
-        }
-        
-        if (plan.onboarding) {
-          console.log(`🏠 [Home] Plan ${index + 1} - Onboarding Data:`, plan.onboarding);
-        }
-      });
-    } else {
-      console.log("🏠 [Home] No workout plans found");
-    }
-  }, [user, initialPlans]);
+    console.log("🏠 [Home] Complete workout plans initialized");
+  }, [initialPlans]);
 
   const handlePlanDeleted = (planId: string) => {
-    console.log("🏠 [Home] Deleting plan:", planId);
     setPlans(prevPlans => prevPlans.filter(plan => plan.id !== planId));
   };
 
   return (
-    <div className="p-4 pb-20">
-      <div className="w-full max-w-4xl mx-auto space-y-6">
-        {/* Welcome Header */}
-        <WelcomeHeader userName={user.name} />
-        {/* Main Content */}
-        {plans && plans.length > 0 ? (
-          <div className="space-y-6">
-            {plans.map((plan) => (
-              <WorkoutList 
-                key={plan.id} 
-                plan={plan} 
-                onboarding={plan.onboarding}
-                onPlanDeleted={handlePlanDeleted}
-              />
-            ))}
-          </div>
-        ) : (
-          <div className="bg-white rounded-3xl p-8 shadow-lg">
+    <>
+      {/* Intro Section */}
+      <section className="mb-8 mt-2">
+        <h1 className="font-serif text-3xl md:text-4xl text-slate-900 leading-tight">
+          Ready for today,<br/>
+          <span className="text-primary">{user.name ? user.name.split(' ')[0] : 'Entrenador'}?</span>
+        </h1>
+      </section>
+
+      {/* Main Content */}
+      {plans && plans.length > 0 ? (
+        <main className="grid grid-cols-2 gap-4">
+          {plans.map((plan) => (
+            <WorkoutList
+              key={plan.id}
+              plan={plan}
+              onboarding={plan.onboarding}
+              onPlanDeleted={handlePlanDeleted}
+            />
+          ))}
+        </main>
+      ) : (
+        <main className="col-span-2">
+          <div className="bg-surface-light rounded-2xl p-8 shadow-soft relative overflow-hidden">
             <div className="text-center space-y-6">
-              <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto">
-                <svg
-                  className="w-10 h-10 text-gray-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-                  />
-                </svg>
+              <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center mx-auto text-primary">
+                <span className="material-icons-round text-3xl">fitness_center</span>
               </div>
               <div>
-                <h3 className="text-xl font-semibold text-black mb-2">
+                <h3 className="text-xl font-bold text-slate-900 mb-2">
                   No workout plan yet
                 </h3>
-                <p className="text-gray-600 mb-6">
-                  Create your personalized workout plan to get started with your
-                  fitness journey.
+                <p className="text-sm text-slate-500 mb-6">
+                  Create your personalized workout plan to get started with your fitness journey.
                 </p>
               </div>
               <a
                 href="/onboarding"
-                className="inline-block bg-black text-white px-8 py-3 rounded-2xl hover:bg-gray-800 transition-colors font-medium"
+                className="inline-block bg-primary text-white px-8 py-3 rounded-full hover:bg-blue-700 transition-colors font-semibold shadow-lg shadow-blue-500/30"
               >
                 Create My Plan
               </a>
             </div>
           </div>
-        )}
-      </div>
-    </div>
+        </main>
+      )}
+    </>
   );
 }
