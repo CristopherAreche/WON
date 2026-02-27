@@ -42,7 +42,7 @@ export default function DeleteAccountButton({ userName }: DeleteAccountButtonPro
   const handleDeleteConfirm = async () => {
     if (!isFormValid()) {
       if (nameInput.toLowerCase() !== userName.toLowerCase()) {
-        setError('Name does not match your account name');
+        setError('Input does not match your account identity');
       } else if (confirmationInput !== requiredConfirmationText) {
         setError('Confirmation text is incorrect');
       }
@@ -126,7 +126,7 @@ export default function DeleteAccountButton({ userName }: DeleteAccountButtonPro
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Enter your name to confirm
+                  Enter your account name (or email if no name is set)
                 </label>
                 <input
                   type="text"

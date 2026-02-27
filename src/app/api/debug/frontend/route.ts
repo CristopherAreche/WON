@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server';
 
 export async function POST(request: Request) {
+  if (process.env.NODE_ENV === "production" && process.env.ENABLE_DEBUG_ROUTES !== "true") {
+    return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
+  }
+
   try {
     const body = await request.json();
     const headers = Object.fromEntries(request.headers.entries());

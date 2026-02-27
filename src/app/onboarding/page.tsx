@@ -11,14 +11,20 @@ export default async function OnboardingPage() {
 
   const user = await prisma.user.findUnique({
     where: { email: session.user.email },
-    select: { id: true, name: true, email: true },
+    select: {
+      name: true,
+      email: true,
+      onboarding: { select: { userId: true } },
+    },
   });
   if (!user) redirect("/auth/login");
 
+  if (user.onboarding) {
+    redirect("/app/home");
+  }
 
   return (
     <OnboardingClient 
-      userId={user.id} 
       userName={user.name ?? user.email} 
     />
   );

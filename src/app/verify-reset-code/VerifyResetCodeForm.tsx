@@ -83,16 +83,7 @@ export default function VerifyResetCodeForm() {
         token,
         code: data.code,
       };
-      
-      // Debug logging
-      console.log('🔍 FRONTEND VERIFY REQUEST');
-      console.log('='.repeat(40));
-      console.log('📨 Sending data:', requestData);
-      console.log('🔗 Token present:', !!token);
-      console.log('🔗 Token length:', token?.length || 0);
-      console.log('🔢 Code:', data.code);
-      console.log('='.repeat(40));
-      
+
       const response = await fetch('/api/auth/verify-reset-code', {
         method: 'POST',
         headers: {
@@ -115,7 +106,7 @@ export default function VerifyResetCodeForm() {
           setError(result.error || 'Verification failed. Please try again.');
         }
       }
-    } catch (error) {
+    } catch {
       setError('Network error. Please check your connection and try again.');
     } finally {
       setIsSubmitting(false);
@@ -142,7 +133,7 @@ export default function VerifyResetCodeForm() {
         setToken('');
         alert('A new verification code has been sent to your email.');
       }
-    } catch (error) {
+    } catch {
       setError('Failed to resend code. Please try again.');
     }
   };
@@ -178,15 +169,6 @@ export default function VerifyResetCodeForm() {
             <div className="rounded-lg bg-yellow-50 p-4 mb-4">
               <div className="text-sm text-yellow-700">
                 <strong>Important:</strong> Please use the "Reset Password" button from your email to access this page with the proper security token.
-                <br />
-                <br />
-                <strong>Debug info:</strong>
-                <br />
-                • Current URL: {typeof window !== 'undefined' ? window.location.href : 'Loading...'}
-                <br />
-                • Token in URL: {searchParams.get('token') ? 'Found' : 'Missing'}
-                <br />
-                • Email in URL: {searchParams.get('email') || 'Missing'}
               </div>
             </div>
           )}

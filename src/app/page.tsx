@@ -14,9 +14,12 @@ export default function Landing() {
           <span className="material-symbols-outlined text-slate-900">fitness_center</span>
           <h2 className="text-slate-900 text-xl font-bold tracking-tight">WON</h2>
         </div>
-        <button className="flex items-center justify-center w-10 h-10 rounded-full overflow-hidden bg-transparent hover:bg-slate-100 transition-colors">
-          <span className="material-symbols-outlined text-slate-900 text-2xl">menu</span>
-        </button>
+        <Link
+          href="/auth/login"
+          className="bg-primary hover:bg-blue-700 text-white font-medium px-5 py-2 rounded-full shadow-sm text-sm transition-colors"
+        >
+          Login
+        </Link>
       </header>
 
       <main className="flex-1 flex flex-col relative z-10 w-full">

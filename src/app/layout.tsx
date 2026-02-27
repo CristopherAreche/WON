@@ -16,8 +16,8 @@ const dmSerif = DM_Serif_Display({
 });
 
 export const metadata: Metadata = {
-  title: "WON - Entrenar sin complicarte",
-  description: "Planes simples, hechos a tu medida",
+  title: "WON - Train Smarter, Not Harder",
+  description: "Simple workout plans tailored to your goals.",
 };
 
 export default function RootLayout({

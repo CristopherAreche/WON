@@ -2,11 +2,11 @@
 
 interface WelcomeHeaderProps {
   userName?: string | null;
-  onOpenSidebar: () => void;
+  onNotificationClick?: () => void;
   avatarUrl?: string; // Opt
 }
 
-export default function WelcomeHeader({ userName, onOpenSidebar, avatarUrl }: WelcomeHeaderProps) {
+export default function WelcomeHeader({ userName, onNotificationClick, avatarUrl }: WelcomeHeaderProps) {
   const getInitials = (name: string | null | undefined) => {
     if (!name) return "U";
     return name.charAt(0).toUpperCase();
@@ -30,18 +30,18 @@ export default function WelcomeHeader({ userName, onOpenSidebar, avatarUrl }: We
         <div>
           <p className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold mb-0.5">Welcome back</p>
           <p className="text-xl font-bold text-slate-900 font-sans">
-            {userName ? userName.split(' ')[0] : 'Entrenador'}
+            {userName ? userName.split(' ')[0] : 'Coach'}
           </p>
         </div>
       </div>
 
-      {/* Button instead of notification bell */}
       <button
-        onClick={onOpenSidebar}
-        className="p-2 rounded-full bg-white shadow-sm hover:shadow-md transition-shadow relative"
+        type="button"
+        onClick={onNotificationClick}
+        aria-label="Notifications"
+        className="w-10 h-10 flex items-center justify-center rounded-full bg-white shadow-sm hover:shadow-md transition-shadow relative"
       >
-        <span className="material-icons-round text-slate-600">menu</span>
-        {/* Optional notification dot for style */}
+        <span className="material-icons-round text-slate-600">notifications_none</span>
         <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-red-500 border border-white"></span>
       </button>
     </header>

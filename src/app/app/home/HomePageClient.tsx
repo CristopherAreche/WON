@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import { useState } from "react";
 import WorkoutList from "@/components/WorkoutList";
 
 interface PlanSummary {
@@ -43,19 +43,16 @@ interface WorkoutPlanData {
   };
 }
 
-interface User {
-  id: string;
-  name: string | null;
-  email: string;
-}
-
 interface OnboardingData {
   goal: string;
   experience: string;
   daysPerWeek: number;
   minutesPerSession: number;
   equipment: string[];
-  location: string;
+  location: string | string[];
+  injuries?: string;
+  dateOfBirth?: string;
+  age?: number;
 }
 
 interface Plan {
@@ -67,19 +64,13 @@ interface Plan {
 }
 
 interface HomePageClientProps {
-  user: User;
   plans: Plan[];
 }
 
 export default function HomePageClient({
-  user,
   plans: initialPlans,
 }: HomePageClientProps) {
   const [plans, setPlans] = useState(initialPlans);
-
-  React.useEffect(() => {
-    console.log("🏠 [Home] Complete workout plans initialized");
-  }, [initialPlans]);
 
   const handlePlanDeleted = (planId: string) => {
     setPlans(prevPlans => prevPlans.filter(plan => plan.id !== planId));
@@ -88,16 +79,16 @@ export default function HomePageClient({
   return (
     <>
       {/* Intro Section */}
-      <section className="mb-8 mt-2">
-        <h1 className="font-serif text-3xl md:text-4xl text-slate-900 leading-tight">
-          Ready for today,<br/>
-          <span className="text-primary">{user.name ? user.name.split(' ')[0] : 'Entrenador'}?</span>
+      <section className="mb-8 mt-4">
+        <h1 className="font-serif text-3xl md:text-4xl text-slate-900 leading-[1.15] tracking-tight">
+          Train smarter,<br/>
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-indigo-400">improve every day.</span>
         </h1>
       </section>
 
       {/* Main Content */}
       {plans && plans.length > 0 ? (
-        <main className="grid grid-cols-2 gap-4">
+        <main className="grid grid-cols-1 gap-6">
           {plans.map((plan) => (
             <WorkoutList
               key={plan.id}
@@ -123,7 +114,7 @@ export default function HomePageClient({
                 </p>
               </div>
               <a
-                href="/onboarding"
+                href="/app/generate"
                 className="inline-block bg-primary text-white px-8 py-3 rounded-full hover:bg-blue-700 transition-colors font-semibold shadow-lg shadow-blue-500/30"
               >
                 Create My Plan

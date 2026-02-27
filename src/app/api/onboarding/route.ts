@@ -1,63 +1,125 @@
 export const runtime = "nodejs";
 
 import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { rateLimit } from "@/lib/rate-limit";
+import { z } from "zod";
+
+const goalSchema = z.enum([
+  "fat_loss",
+  "hypertrophy",
+  "strength",
+  "returning",
+  "general_health",
+]);
+
+const experienceSchema = z.enum([
+  "beginner",
+  "three_to_twelve_months",
+  "one_to_three_years",
+  "three_years_plus",
+]);
+
+const equipmentSchema = z.enum([
+  "bodyweight",
+  "bands",
+  "dumbbells",
+  "barbell",
+  "machines",
+]);
+
+const locationSchema = z.enum(["home", "gym", "park"]);
+
+const onboardingSchema = z.object({
+  userId: z.string().min(1).optional(),
+  fullName: z
+    .string()
+    .min(2, "fullName is required")
+    .max(50, "fullName must be <= 50 chars"),
+  dateOfBirth: z.coerce
+    .date()
+    .refine((date) => !Number.isNaN(date.getTime()), "Invalid dateOfBirth")
+    .refine((date) => date <= new Date(), "dateOfBirth cannot be in the future"),
+  height: z.number().min(2).max(9.917),
+  currentWeight: z.number().min(1).max(1400),
+  goal: goalSchema,
+  experience: experienceSchema,
+  daysPerWeek: z.number().int().min(1).max(7),
+  minutesPerSession: z.number().int().min(30).max(180),
+  equipment: z.array(equipmentSchema).min(1, "Select at least one equipment"),
+  location: z.union([z.array(locationSchema).min(1), locationSchema]),
+  injuries: z.string().max(500).optional(),
+});
 
 export async function POST(req: Request) {
   try {
+    const session = await getServerSession(authOptions);
+    const sessionUserId = (session?.user as { id?: string } | undefined)?.id;
+    if (!session?.user?.email && !sessionUserId) {
+      return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
+    }
+
     const body = await req.json();
+    const parsed = onboardingSchema.safeParse(body);
+
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: parsed.error.issues[0]?.message || "INVALID_INPUT" },
+        { status: 400 }
+      );
+    }
+
     const {
-      userId,
+      userId: requestedUserId,
+      fullName,
+      dateOfBirth,
+      height,
+      currentWeight,
       goal,
       experience,
       daysPerWeek,
       minutesPerSession,
-
-
-
       equipment,
+      location,
       injuries,
-      location,
-      currentWeight,
-      height,
-      age,
-    } = body;
+    } = parsed.data;
 
-    console.log("🔵 [API] Received onboarding data:", {
-      userId,
-      goal,
-      experience,
-      daysPerWeek,
-      minutesPerSession,
-      equipment,
-      location,
-      currentWeight,
-      height,
-      age,
-      injuries
+    let userId = sessionUserId;
+    if (!userId) {
+      const user = await prisma.user.findUnique({
+        where: { email: session.user.email as string },
+        select: { id: true },
+      });
+
+      if (!user) {
+        return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
+      }
+      userId = user.id;
+    }
+
+    if (requestedUserId && requestedUserId !== userId) {
+      return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
+    }
+    const onboardingRateLimit = rateLimit(`onboarding:user:${userId}`, {
+      windowMs: 15 * 60 * 1000,
+      maxRequests: 10,
     });
-
-    if (
-      !userId ||
-      !goal ||
-      !experience ||
-      !daysPerWeek ||
-      !minutesPerSession ||
-      !equipment ||
-      !location
-    ) {
-      console.error("🔴 [API] Missing required fields");
-      return NextResponse.json({ error: "INVALID_INPUT - Missing required fields" }, { status: 400 });
+    if (!onboardingRateLimit.allowed) {
+      return NextResponse.json({ error: "RATE_LIMITED" }, { status: 429 });
     }
 
-    // Temporary: Handle missing new fields gracefully until migration is run
-    if (currentWeight === undefined || height === undefined || age === undefined) {
-      console.log("⚠️ [API] New fields missing - will save with existing schema only");
-    }
+    const normalizedName = fullName.trim().replace(/\s+/g, " ");
+    const primaryLocation = Array.isArray(location) ? location[0] : location;
+    const normalizedInjuries = injuries?.trim() || null;
 
-    try {
-      // For now, save with existing schema fields only (temporary compatibility)
-      const saved = await prisma.onboardingAnswers.upsert({
+    const [, savedOnboarding] = await prisma.$transaction([
+      prisma.user.update({
+        where: { id: userId },
+        data: { name: normalizedName },
+      }),
+      prisma.onboardingAnswers.upsert({
         where: { userId },
         update: {
           goal,
@@ -65,8 +127,11 @@ export async function POST(req: Request) {
           daysPerWeek,
           minutesPerSession,
           equipment,
-          injuries,
-          location: location[0] || "home", // Use first location for now
+          injuries: normalizedInjuries,
+          location: primaryLocation,
+          currentWeight,
+          height,
+          dateOfBirth,
         },
         create: {
           userId,
@@ -75,28 +140,21 @@ export async function POST(req: Request) {
           daysPerWeek,
           minutesPerSession,
           equipment,
-          injuries,
-          location: location[0] || "home", // Use first location for now
+          injuries: normalizedInjuries,
+          location: primaryLocation,
+          currentWeight,
+          height,
+          dateOfBirth,
         },
-      });
+      }),
+    ]);
 
-      console.log("🟢 [API] Onboarding saved successfully (with current schema):", saved.userId);
-      console.log("⚠️ [API] Note: New fields (currentWeight, height, age, location array) not saved yet - database migration pending");
-
-      return NextResponse.json({
-        ok: true,
-        onboardingId: saved.userId,
-        note: "Saved with current schema - new fields pending migration"
-      });
-    } catch (dbError) {
-      console.error("🔴 [API] Database error:", dbError);
-      return NextResponse.json({ error: "DATABASE_ERROR - " + (dbError as Error).message }, { status: 500 });
-    }
-  } catch (e) {
-    console.error(e);
-    return NextResponse.json(
-      { error: "ONBOARDING_SAVE_FAILED" },
-      { status: 500 }
-    );
+    return NextResponse.json({
+      ok: true,
+      onboardingId: savedOnboarding.userId,
+    });
+  } catch (error) {
+    console.error("[onboarding] Failed to persist onboarding", error);
+    return NextResponse.json({ error: "ONBOARDING_SAVE_FAILED" }, { status: 500 });
   }
 }

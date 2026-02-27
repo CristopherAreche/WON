@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import { useState, type MouseEvent } from "react";
 import { useRouter } from "next/navigation";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
 
@@ -50,7 +50,10 @@ interface OnboardingData {
   daysPerWeek: number;
   minutesPerSession: number;
   equipment: string[];
-  location: string;
+  location: string | string[];
+  injuries?: string;
+  dateOfBirth?: string;
+  age?: number;
 }
 
 interface Plan {
@@ -77,52 +80,6 @@ function WorkoutCard({ plan, onboarding, onPlanDeleted }: WorkoutCardProps) {
   const router = useRouter();
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-
-  // Console log workout data when component renders
-  React.useEffect(() => {
-    console.log("💪 [WorkoutCard] Rendering workout plan:", plan.id);
-    console.log("💪 [WorkoutCard] Plan summary:", plan.summary);
-    console.log("💪 [WorkoutCard] Plan workout data:", plan.days);
-    console.log("💪 [WorkoutCard] Plan onboarding:", onboarding);
-
-    // Log data sources being used for display
-    console.log("💪 [WorkoutCard] Data sources used:");
-    console.log(
-      "  - Goal:",
-      plan.days?.meta?.goal || plan.summary?.goal || onboarding?.goal
-    );
-    console.log(
-      "  - Duration:",
-      plan.days?.constraints?.minutesPerSession ||
-        plan.summary?.minutes ||
-        onboarding?.minutesPerSession
-    );
-    console.log(
-      "  - Location:",
-      plan.days?.meta?.location || onboarding?.location
-    );
-    console.log(
-      "  - Days/Week:",
-      plan.days?.sessions?.length ||
-        plan.summary?.daysPerWeek ||
-        onboarding?.daysPerWeek
-    );
-    console.log("  - Created:", plan.createdAt);
-
-    if (plan.days && plan.days.sessions) {
-      console.log(
-        "💪 [WorkoutCard] Workout sessions:",
-        plan.days.sessions.length
-      );
-      plan.days.sessions.forEach((session, index) => {
-        console.log(`💪 [WorkoutCard] Session ${index + 1}: ${session.title}`);
-        console.log(
-          `💪 [WorkoutCard] Session ${index + 1} exercises:`,
-          session.items
-        );
-      });
-    }
-  }, [plan, onboarding]);
 
   // Get workout image based on goal
   const getWorkoutImage = () => {
@@ -173,12 +130,14 @@ function WorkoutCard({ plan, onboarding, onPlanDeleted }: WorkoutCardProps) {
   };
 
   const getLocation = () => {
-    // Priority: plan.days.meta.location > onboarding.location
-    const location = plan.days?.meta?.location || onboarding?.location;
+    const rawLocation = plan.days?.meta?.location || onboarding?.location;
+    const normalized = Array.isArray(rawLocation)
+      ? rawLocation.join(", ").toLowerCase()
+      : String(rawLocation || "").toLowerCase();
 
-    if (location) {
-      return location === "gym" ? "Gym Workout" : "Home Workout";
-    }
+    if (normalized.includes("park")) return "Park Workout";
+    if (normalized.includes("gym")) return "Gym Workout";
+    if (normalized.includes("home")) return "Home Workout";
     return "Workout";
   };
 
@@ -217,7 +176,7 @@ function WorkoutCard({ plan, onboarding, onPlanDeleted }: WorkoutCardProps) {
     }).format(date);
   };
 
-  const handleDeleteClick = (e: React.MouseEvent) => {
+  const handleDeleteClick = (e: MouseEvent) => {
     e.stopPropagation(); // Prevent card click navigation
     setShowDeleteModal(true);
   };
@@ -285,7 +244,9 @@ function WorkoutCard({ plan, onboarding, onPlanDeleted }: WorkoutCardProps) {
           </div>
 
           <h3 className="text-xl font-bold text-slate-900 mb-1">{getGoal()} Plan</h3>
-          <p className="text-sm text-slate-500 mb-6">{getDaysPerWeek()} • {getDuration()}</p>
+          <p className="text-sm text-slate-500 mb-6">
+            {getDaysPerWeek()} • {getDuration()} • {getLocation()}
+          </p>
 
           <div className="flex items-center justify-between">
             <div className="flex -space-x-2">

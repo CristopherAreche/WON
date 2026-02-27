@@ -45,7 +45,13 @@ export default function LoginForm() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const search = useSearchParams();
-  const callbackUrl = search.get("callbackUrl") ?? "/app/home";
+  const rawCallbackUrl = search.get("callbackUrl");
+  const callbackUrl =
+    rawCallbackUrl &&
+    rawCallbackUrl.startsWith("/") &&
+    !rawCallbackUrl.startsWith("//")
+      ? rawCallbackUrl
+      : "/app/home";
 
   const {
     register,
@@ -152,7 +158,10 @@ export default function LoginForm() {
             disabled={isSubmitting}
             className="w-full bg-primary hover:bg-blue-700 text-white font-medium text-lg py-4 rounded-xl shadow-lg shadow-primary/20 transform active:scale-[0.98] transition-all flex items-center justify-center gap-2 mt-4 disabled:opacity-70 disabled:hover:bg-primary disabled:active:scale-100"
           >
-            {isSubmitting ? "Signing in..." : "Sign In"}
+            {isSubmitting && (
+              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+            )}
+            {isSubmitting ? "Validating..." : "Sign In"}
           </button>
         </form>
 

@@ -10,8 +10,11 @@ import { useRouter } from 'next/navigation';
 const resetPasswordSchema = z.object({
   email: z.string().email('Invalid email'),
   securityToken: z.string().length(10, 'Security token must be exactly 10 digits'),
-  newPassword: z.string().min(8, 'Password must be at least 8 characters'),
-  confirmPassword: z.string().min(8, 'Password must be at least 8 characters'),
+  newPassword: z
+    .string()
+    .min(12, 'Password must be at least 12 characters')
+    .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).+$/, 'Use upper, lower, number, and symbol'),
+  confirmPassword: z.string().min(12, 'Password must be at least 12 characters'),
 }).refine((data) => data.newPassword === data.confirmPassword, {
   message: "Passwords don't match",
   path: ["confirmPassword"],

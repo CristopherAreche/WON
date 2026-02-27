@@ -3,9 +3,8 @@
 import { useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
-import Sidebar from "@/components/Sidebar";
 
-const HamburgerIcon = () => (
+const NotificationIcon = () => (
   <svg
     className="w-6 h-6"
     fill="none"
@@ -16,7 +15,7 @@ const HamburgerIcon = () => (
       strokeLinecap="round"
       strokeLinejoin="round"
       strokeWidth="2"
-      d="M4 6h16M4 12h16M4 18h16"
+      d="M15 17h5l-1.4-1.4A2 2 0 0118 14.2V11a6 6 0 10-12 0v3.2a2 2 0 01-.6 1.4L4 17h5m6 0a3 3 0 11-6 0"
     />
   </svg>
 );
@@ -54,7 +53,7 @@ const ArrowLeftIcon = () => (
 );
 
 export default function Header() {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [hasUnreadNotification] = useState(true);
   const { data: session } = useSession();
   const router = useRouter();
   const pathname = usePathname();
@@ -69,9 +68,9 @@ export default function Header() {
     (isOnboardingPage && isReturningUser)
   );
 
-  // Show sandwich icon when logged in and on app routes or onboarding
+  // Show notifications icon when logged in and on app routes or onboarding
   const isAppRoute = pathname?.startsWith('/app/');
-  const showSandwichIcon = session?.user && (isAppRoute || isOnboardingPage);
+  const showNotifications = session?.user && (isAppRoute || isOnboardingPage);
 
   const handleBack = () => {
     router.back();
@@ -91,7 +90,7 @@ export default function Header() {
             {showBackButton && (
               <button
                 onClick={handleBack}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                className="w-10 h-10 flex items-center justify-center hover:bg-gray-100 rounded-full transition-colors"
                 title="Go back"
               >
                 <ArrowLeftIcon />
@@ -107,19 +106,23 @@ export default function Header() {
             <h1 className="text-2xl font-black text-black">WON</h1>
           </button>
           <div className="flex-1 flex justify-end">
-            {showSandwichIcon && (
-              <button
-                onClick={() => setSidebarOpen(true)}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                <HamburgerIcon />
-              </button>
+            {showNotifications && (
+              <div className="relative">
+                <button
+                  type="button"
+                  aria-label="Notifications"
+                  className="w-10 h-10 flex items-center justify-center hover:bg-gray-100 rounded-full transition-colors"
+                >
+                  <NotificationIcon />
+                </button>
+                {hasUnreadNotification && (
+                  <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-red-500 border border-white"></span>
+                )}
+              </div>
             )}
           </div>
         </div>
       </header>
-
-      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
     </>
   );
 }

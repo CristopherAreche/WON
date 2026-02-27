@@ -1,6 +1,6 @@
 import { prisma } from './db';
 import * as argon2 from 'argon2';
-import { randomBytes } from 'crypto';
+import { randomBytes, randomInt } from 'crypto';
 
 export interface PasswordResetConfig {
   tokenTtlMinutes: number;
@@ -27,7 +27,7 @@ export function getPasswordResetConfig(): PasswordResetConfig {
 export function generateResetCode(length: number = 6): string {
   let code = '';
   for (let i = 0; i < length; i++) {
-    code += Math.floor(Math.random() * 10).toString();
+    code += randomInt(0, 10).toString();
   }
   return code;
 }

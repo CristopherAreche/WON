@@ -19,7 +19,7 @@ interface UserProfile {
     "bodyweight" | "bands" | "dumbbells" | "barbell" | "machines"
   >;
   injuries?: string;
-  location: Array<"home" | "gym">;
+  location: Array<"home" | "gym" | "park">;
   currentWeight: number;
   height: number;
   age: number;
@@ -65,31 +65,19 @@ interface GeneratedWorkoutPlan {
 
 export class AIWorkoutGenerator {
   private openrouter: OpenRouterClient | null = null;
+  private isDev = process.env.NODE_ENV !== "production";
 
   constructor() {
     // Initialize OpenRouter client
     try {
-      console.log("🔵 Initializing OpenRouter client...");
-      console.log(
-        "🔵 OPENROUTER_API_KEY exists:",
-        !!process.env.OPENROUTER_API_KEY
-      );
-      console.log(
-        "🔵 OPENROUTER_API_KEY length:",
-        process.env.OPENROUTER_API_KEY?.length || 0
-      );
-
       this.openrouter = getOpenRouterClient();
-      if (!this.openrouter) {
-        console.warn("🟡 OpenRouter not available. Using fallback generation.");
-      } else {
-        console.log("🟢 OpenRouter client initialized successfully");
+      if (!this.openrouter && this.isDev) {
+        console.warn("[AIWorkoutGenerator] OpenRouter not available. Using fallback generation.");
       }
     } catch (error) {
-      console.warn(
-        "🔴 OpenRouter initialization failed. Using fallback generation:",
-        error
-      );
+      if (this.isDev) {
+        console.warn("[AIWorkoutGenerator] OpenRouter initialization failed. Using fallback generation.", error);
+      }
       this.openrouter = null;
     }
   }
@@ -99,16 +87,14 @@ export class AIWorkoutGenerator {
   ): Promise<GeneratedWorkoutPlan> {
     try {
       if (this.openrouter) {
-        console.log("🔵 AIWorkoutGenerator: Using OpenRouter API");
         return await this.generateWithOpenRouter(userProfile);
-      } else {
-        console.log(
-          "🟡 AIWorkoutGenerator: OpenRouter not available, using fallback"
-        );
-        return this.generateFallbackPlan(userProfile);
       }
+
+      return this.generateFallbackPlan(userProfile);
     } catch (error) {
-      console.error("🔴 AI generation failed, using fallback:", error);
+      if (this.isDev) {
+        console.error("[AIWorkoutGenerator] AI generation failed, using fallback.", error);
+      }
       return this.generateFallbackPlan(userProfile);
     }
   }
@@ -121,7 +107,6 @@ export class AIWorkoutGenerator {
     }
 
     const prompt = this.createWorkoutPrompt(userProfile);
-    console.log("🔵 Sending prompt to OpenRouter:", prompt);
 
     const completion = await this.openrouter.createChatCompletion(
       [
@@ -141,13 +126,7 @@ export class AIWorkoutGenerator {
       }
     );
 
-    console.log(
-      "🟢 OpenRouter raw response:",
-      JSON.stringify(completion, null, 2)
-    );
-
     const response = completion.choices[0]?.message?.content;
-    console.log("🟢 OpenRouter message content:", response);
 
     if (!response) {
       throw new Error("No response from OpenRouter");
@@ -155,14 +134,11 @@ export class AIWorkoutGenerator {
 
     try {
       const parsedPlan = JSON.parse(response);
-      console.log(
-        "🟢 Parsed workout plan (English):",
-        JSON.stringify(parsedPlan, null, 2)
-      );
       return parsedPlan;
     } catch (parseError) {
-      console.error("🔴 Parse error:", parseError);
-      console.error("🔴 Raw response:", response);
+      if (this.isDev) {
+        console.error("[AIWorkoutGenerator] Parse error from OpenRouter response.", parseError);
+      }
       throw new Error("Invalid JSON response from OpenRouter");
     }
   }
@@ -393,7 +369,13 @@ Generate a complete, safe and effective plan. Respond ONLY with valid JSON.`;
       equipment.includes("dumbbells") || equipment.includes("barbell");
     const isAdvanced =
       experience === "one_to_three_years" || experience === "three_years_plus";
-    const locationText = userProfile.location.map(loc => loc === "home" ? "Home" : "Gym").join("/");
+    const locationText = userProfile.location
+      .map((loc) => {
+        if (loc === "home") return "Home";
+        if (loc === "gym") return "Gym";
+        return "Park";
+      })
+      .join("/");
 
     const sessions: WorkoutSession[] = [];
 

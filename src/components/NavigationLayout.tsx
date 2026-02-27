@@ -1,8 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { usePathname } from "next/navigation";
 import GlobalAppHeader from "./GlobalAppHeader";
-import Sidebar from "./Sidebar";
 import BottomNavbar from "./BottomNavbar";
 
 interface NavigationLayoutProps {
@@ -11,30 +10,35 @@ interface NavigationLayoutProps {
     id: string;
     name: string | null;
     email: string;
-    image?: string | null;
+    profileImageDataUrl?: string | null;
+    fallbackImage?: string | null;
   };
 }
 
 export default function NavigationLayout({ children, user }: NavigationLayoutProps) {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const pathname = usePathname();
+  const isGenerateRoute = pathname.startsWith("/app/generate");
+
+  const contentClassName = isGenerateRoute
+    ? "flex-1 w-full px-4 sm:px-5 pb-28 pt-2 overflow-y-auto"
+    : "flex-1 w-full max-w-4xl mx-auto px-6 pb-28 pt-2 overflow-y-auto";
 
   return (
     <div className="font-sans bg-background-light min-h-screen relative flex flex-col">
       {/* Fixed Header */}
       <GlobalAppHeader
         userName={user.name}
-        avatarUrl={user.image || undefined}
-        onOpenSidebar={() => setIsSidebarOpen(true)}
+        profileImageDataUrl={user.profileImageDataUrl || undefined}
+        fallbackAvatarUrl={user.fallbackImage || undefined}
       />
 
       {/* Main Content Area */}
-      <div className="flex-1 w-full max-w-4xl mx-auto px-6 pb-28 pt-2 overflow-y-auto">
+      <div className={contentClassName}>
         {children}
       </div>
 
       {/* Fixed Global Elements */}
       <BottomNavbar />
-      <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
     </div>
   );
 }

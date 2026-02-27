@@ -44,10 +44,10 @@ const SignupSchema = z.object({
     ),
   password: z
     .string()
-    .min(8, "Minimum 8 characters")
+    .min(12, "Minimum 12 characters")
     .refine(
-      (val) => /^(?=.*[a-z])(?=.*[A-Z])(?=.*[!@#$%^&*(),.?":{}|<>]).{8,}$/.test(val),
-      "Must include uppercase, lowercase and special character"
+      (val) => /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>]).{12,}$/.test(val),
+      "Must include uppercase, lowercase, number, and special character"
     )
     .refine(
       (val) => !/[\u{1F600}-\u{1F64F}]|[\u{1F300}-\u{1F5FF}]|[\u{1F680}-\u{1F6FF}]|[\u{1F1E0}-\u{1F1FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/u.test(val),
@@ -80,7 +80,6 @@ export default function SignupPage() {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
-    setError,
   } = useForm<z.infer<typeof SignupSchema>>({
     resolver: zodResolver(SignupSchema),
   });
@@ -230,7 +229,7 @@ export default function SignupPage() {
             </button>
 
             <p className="text-xs text-slate-400 font-medium">
-              You can also find this token later in your profile settings.
+              Save it now. It is only shown in full during account creation.
             </p>
           </div>
         </main>

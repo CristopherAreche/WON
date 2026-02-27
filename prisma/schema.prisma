@@ -29,6 +29,7 @@ enum Experience {
 enum Location {
   home
   gym
+  park
 }
 
 enum Equipment {
@@ -51,6 +52,7 @@ model User {
   id           String   @id @default(cuid())
   email        String   @unique
   name         String?
+  profileImageDataUrl String? @db.Text
   passwordHash String
   securityToken String? @unique // 10-digit security token for password reset
   createdAt    DateTime @default(now())
@@ -76,7 +78,7 @@ model OnboardingAnswers {
   location          Location    // single location for now, TODO: make array later
   currentWeight     Float       @default(150.0) // weight in pounds
   height            Float       @default(5.5)   // height in feet (e.g., 5.75 for 5'9")
-  age               Int         @default(25)    // age in years
+  dateOfBirth       DateTime    @default(now()) // used to dynamically calculate age
   createdAt         DateTime    @default(now())
   updatedAt         DateTime    @updatedAt
 }
@@ -95,6 +97,7 @@ model WorkoutPlan {
   createdAt DateTime   @default(now())
 
   @@index([userId])
+  @@index([userId, createdAt(sort: Desc)])
 }
 
 /**
@@ -163,7 +166,7 @@ model PasswordResetToken {
   ip           String?
   userAgent    String?
   createdAt    DateTime  @default(now())
-  
+
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])

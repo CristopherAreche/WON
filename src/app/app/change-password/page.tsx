@@ -8,8 +8,11 @@ import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 
 const changePasswordSchema = z.object({
-  newPassword: z.string().min(8, 'Password must be at least 8 characters'),
-  confirmPassword: z.string().min(8, 'Password must be at least 8 characters'),
+  newPassword: z
+    .string()
+    .min(12, 'Password must be at least 12 characters')
+    .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).+$/, 'Use upper, lower, number, and symbol'),
+  confirmPassword: z.string().min(12, 'Password must be at least 12 characters'),
   securityToken: z.string().length(10, 'Security token must be exactly 10 digits'),
 }).refine((data) => data.newPassword === data.confirmPassword, {
   message: "Passwords don't match",
@@ -23,7 +26,7 @@ export default function ChangePasswordPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const router = useRouter();
-  const { data: session, status } = useSession();
+  const { status } = useSession();
 
   const {
     register,
@@ -156,7 +159,7 @@ export default function ChangePasswordPage() {
                 <p className="text-sm text-red-600 mt-1">{errors.securityToken.message}</p>
               )}
               <p className="text-xs text-gray-500 mt-1">
-                You can find your security token in your profile settings.
+                Use the token you saved during account creation.
               </p>
             </div>
 

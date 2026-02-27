@@ -32,9 +32,12 @@ export async function GET() {
       }, { status: 400 });
     }
 
+    const visibleSuffix = user.securityToken.slice(-2);
+    const maskedToken = `${"*".repeat(Math.max(user.securityToken.length - 2, 0))}${visibleSuffix}`;
+
     return NextResponse.json({ 
       ok: true, 
-      securityToken: user.securityToken 
+      securityTokenMasked: maskedToken,
     });
 
   } catch (e) {

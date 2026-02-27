@@ -6,17 +6,41 @@ interface RateLimitEntry {
   resetTime: number;
 }
 
-const rateLimitStore = new Map<string, RateLimitEntry>();
+declare global {
+  // eslint-disable-next-line no-var
+  var __wonRateLimitStore: Map<string, RateLimitEntry> | undefined;
+  // eslint-disable-next-line no-var
+  var __wonRateLimitCleanupTimer: ReturnType<typeof setInterval> | undefined;
+}
 
-// Clean up expired entries every 5 minutes
-setInterval(() => {
-  const now = Date.now();
-  for (const [key, entry] of rateLimitStore.entries()) {
-    if (now > entry.resetTime) {
-      rateLimitStore.delete(key);
+const globalStore = globalThis as typeof globalThis & {
+  __wonRateLimitStore?: Map<string, RateLimitEntry>;
+  __wonRateLimitCleanupTimer?: ReturnType<typeof setInterval>;
+};
+
+const rateLimitStore =
+  globalStore.__wonRateLimitStore ?? new Map<string, RateLimitEntry>();
+
+if (!globalStore.__wonRateLimitStore) {
+  globalStore.__wonRateLimitStore = rateLimitStore;
+}
+
+if (!globalStore.__wonRateLimitCleanupTimer) {
+  const cleanupTimer = setInterval(() => {
+    const now = Date.now();
+    for (const [key, entry] of rateLimitStore.entries()) {
+      if (now > entry.resetTime) {
+        rateLimitStore.delete(key);
+      }
     }
+  }, 5 * 60 * 1000);
+
+  // Do not keep Node alive only because of this interval.
+  if ("unref" in cleanupTimer && typeof cleanupTimer.unref === "function") {
+    cleanupTimer.unref();
   }
-}, 5 * 60 * 1000);
+  globalStore.__wonRateLimitCleanupTimer = cleanupTimer;
+}
 
 export interface RateLimitConfig {
   windowMs: number; // Time window in milliseconds
@@ -34,7 +58,6 @@ export function rateLimit(
   config: RateLimitConfig
 ): RateLimitResult {
   const now = Date.now();
-  const windowStart = now - config.windowMs;
 
   const entry = rateLimitStore.get(identifier);
 

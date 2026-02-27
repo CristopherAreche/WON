@@ -2,6 +2,10 @@ import { NextResponse } from 'next/server';
 import { debugTokenValidation, debugTokenCreation } from '@/lib/debug-token';
 
 export async function POST(request: Request) {
+  if (process.env.NODE_ENV === "production" && process.env.ENABLE_DEBUG_ROUTES !== "true") {
+    return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
+  }
+
   try {
     const body = await request.json();
     const { action, token, code, email } = body;

@@ -4,6 +4,12 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { z } from "zod";
+
+const deleteAccountSchema = z.object({
+  name: z.string().trim().min(1, "NAME_REQUIRED"),
+  confirmationText: z.string().trim().min(1, "CONFIRMATION_REQUIRED"),
+});
 
 export async function POST(req: Request) {
   try {
@@ -13,14 +19,16 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
     }
 
-    const { name, confirmationText } = await req.json();
-    
-    if (!name || !confirmationText) {
+    const body = await req.json();
+    const parsed = deleteAccountSchema.safeParse(body);
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: "NAME_AND_CONFIRMATION_REQUIRED" },
+        { error: parsed.error.issues[0]?.message || "INVALID_INPUT" },
         { status: 400 }
       );
     }
+
+    const { name, confirmationText } = parsed.data;
 
     // Get user details
     const user = await prisma.user.findUnique({
@@ -39,10 +47,11 @@ export async function POST(req: Request) {
       );
     }
 
-    // Verify name matches (case insensitive)
-    if (user.name?.toLowerCase() !== name.toLowerCase()) {
+    // Verify identity matches (name when available, otherwise email)
+    const expectedIdentity = (user.name || user.email).toLowerCase();
+    if (expectedIdentity !== name.toLowerCase()) {
       return NextResponse.json(
-        { error: "NAME_DOES_NOT_MATCH" },
+        { error: "IDENTITY_DOES_NOT_MATCH" },
         { status: 400 }
       );
     }
@@ -56,29 +65,28 @@ export async function POST(req: Request) {
       );
     }
 
-    // Delete related data first (due to foreign key constraints)
-    await prisma.onboardingAnswers.deleteMany({
-      where: { userId: user.id }
+    await prisma.$transaction(async (tx) => {
+      await tx.onboardingAnswers.deleteMany({
+        where: { userId: user.id }
+      });
+
+      await tx.workoutPlan.deleteMany({
+        where: { userId: user.id }
+      });
+
+      await tx.account.deleteMany({
+        where: { userId: user.id }
+      });
+
+      await tx.session.deleteMany({
+        where: { userId: user.id }
+      });
+
+      await tx.user.delete({
+        where: { id: user.id }
+      });
     });
 
-    await prisma.workoutPlan.deleteMany({
-      where: { userId: user.id }
-    });
-
-    await prisma.account.deleteMany({
-      where: { userId: user.id }
-    });
-
-    await prisma.session.deleteMany({
-      where: { userId: user.id }
-    });
-
-    // Finally delete the user
-    await prisma.user.delete({
-      where: { id: user.id }
-    });
-
-    console.log("🔴 Account deleted for user:", user.email);
     return NextResponse.json({ 
       ok: true, 
       message: "Account deleted successfully" 

@@ -48,13 +48,11 @@ export async function DELETE(
     }
 
     // Delete the workout plan
-    console.log("🗑️ Deleting workout plan from database:", planId);
     await prisma.workoutPlan.delete({
       where: {
         id: planId,
       },
     });
-    console.log("✅ Workout plan deleted successfully:", planId);
 
     return NextResponse.json({ 
       ok: true, 

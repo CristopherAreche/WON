@@ -119,9 +119,9 @@ export async function debugTokenCreation(email: string) {
   console.log('✅ User found:', user.id);
   
   // Generate token and code
-  const { randomBytes } = await import('crypto');
+  const { randomBytes, randomInt } = await import("crypto");
   const originalToken = randomBytes(32).toString('base64url');
-  const code = Math.floor(100000 + Math.random() * 900000).toString();
+  const code = randomInt(100000, 1000000).toString();
   
   console.log('Generated token:', originalToken);
   console.log('Generated code:', code);

@@ -383,18 +383,12 @@ export default function WorkoutDetailsClient({
 
   // Load saved exercise completion from localStorage on component mount
   React.useEffect(() => {
-    console.log("🏋️ [WorkoutDetails] Plan data:", plan);
-    console.log("🏋️ [WorkoutDetails] Workout sessions:", plan.days.sessions);
-    console.log("🏋️ [WorkoutDetails] Meta data:", plan.days.meta);
-    console.log("🏋️ [WorkoutDetails] Constraints:", plan.days.constraints);
-    
     // Load saved progress from localStorage
     const savedProgress = localStorage.getItem(`workout_progress_${plan.id}`);
     if (savedProgress) {
       try {
         const progress = JSON.parse(savedProgress);
         setExerciseCompletion(progress);
-        console.log("📱 Loaded saved workout progress:", progress);
       } catch (error) {
         console.error("Error loading saved progress:", error);
       }
@@ -406,7 +400,6 @@ export default function WorkoutDetailsClient({
       try {
         const substitutions = JSON.parse(savedSubstitutions);
         setExerciseSubstitutions(substitutions);
-        console.log("📱 Loaded saved exercise substitutions:", substitutions);
       } catch (error) {
         console.error("Error loading saved substitutions:", error);
       }
@@ -417,7 +410,6 @@ export default function WorkoutDetailsClient({
   React.useEffect(() => {
     if (Object.keys(exerciseCompletion).length > 0) {
       localStorage.setItem(`workout_progress_${plan.id}`, JSON.stringify(exerciseCompletion));
-      console.log("💾 Saved workout progress to localStorage");
     }
   }, [exerciseCompletion, plan.id]);
 
@@ -425,7 +417,6 @@ export default function WorkoutDetailsClient({
   React.useEffect(() => {
     if (Object.keys(exerciseSubstitutions).length > 0) {
       localStorage.setItem(`exercise_substitutions_${plan.id}`, JSON.stringify(exerciseSubstitutions));
-      console.log("💾 Saved exercise substitutions to localStorage");
     }
   }, [exerciseSubstitutions, plan.id]);
 
@@ -519,8 +510,6 @@ export default function WorkoutDetailsClient({
       ...prev,
       [key]: nextSubstitution
     }));
-    
-    console.log(`🔄 Exercise substituted: ${key} -> ${nextSubstitution}`);
   };
 
   const getGoalDisplay = () => {
@@ -630,7 +619,11 @@ export default function WorkoutDetailsClient({
                   </div>
                   <div className="text-center bg-gray-50 rounded-xl p-3">
                     <div className="text-xl font-bold text-black">
-                      {plan.days.meta.location === "gym" ? "Gym" : "Home"}
+                      {String(plan.days.meta.location).toLowerCase().includes("park")
+                        ? "Park"
+                        : String(plan.days.meta.location).toLowerCase().includes("gym")
+                        ? "Gym"
+                        : "Home"}
                     </div>
                     <div className="text-xs text-gray-500">Location</div>
                   </div>

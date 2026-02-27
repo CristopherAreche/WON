@@ -14,18 +14,20 @@ class DevEmailService {
 
   emails = {
     send: async (data: EmailData) => {
-      console.log('\n' + '='.repeat(80));
-      console.log('📧 EMAIL WOULD BE SENT TO: ' + data.to);
-      console.log('📨 SUBJECT: ' + data.subject);
-      console.log('📤 FROM: ' + data.from);
-      console.log('='.repeat(80));
-      console.log('\n📄 EMAIL CONTENT (HTML):');
-      console.log(data.html);
-      console.log('\n📄 EMAIL CONTENT (TEXT):');
-      console.log(data.text);
-      console.log('\n' + '='.repeat(80));
-      console.log('💡 TIP: In production, configure RESEND_API_KEY to send real emails');
-      console.log('='.repeat(80) + '\n');
+      if (process.env.NODE_ENV === "production" && !this.apiKey) {
+        throw new Error("EMAIL_PROVIDER_NOT_CONFIGURED");
+      }
+
+      if (process.env.NODE_ENV !== "production" || process.env.ENABLE_DEV_EMAIL_LOGS === "true") {
+        const maskedRecipient = data.to.replace(/(^.).+(@.*$)/, "$1***$2");
+        console.log("\n" + "=".repeat(80));
+        console.log("DEV EMAIL DISPATCH");
+        console.log(`TO: ${maskedRecipient}`);
+        console.log(`SUBJECT: ${data.subject}`);
+        console.log(`FROM: ${data.from}`);
+        console.log("Email content omitted from logs to avoid leaking secrets.");
+        console.log("=".repeat(80) + "\n");
+      }
       
       return { data: { id: `dev-email-${Date.now()}` } };
     },

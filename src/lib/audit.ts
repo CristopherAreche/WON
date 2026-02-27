@@ -1,4 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { randomUUID } from "crypto";
+
 export type AuditEventType =
   | "PasswordResetRequested"
   | "PasswordResetVerified"
@@ -24,9 +26,10 @@ export function logAuditEvent(event: Omit<AuditEvent, "timestamp">) {
     timestamp: new Date(),
   };
 
-  // In production, you would send this to a proper logging service
-  // For now, we'll use structured console logging
-  console.log("AUDIT_EVENT", JSON.stringify(auditEvent));
+  if (process.env.NODE_ENV !== "production" || process.env.ENABLE_AUDIT_LOGS === "true") {
+    // In production, prefer a centralized logging sink instead of stdout.
+    console.log("AUDIT_EVENT", JSON.stringify(auditEvent));
+  }
 
   // You could also save to database for compliance requirements
   // await prisma.auditLog.create({ data: auditEvent });
@@ -44,5 +47,5 @@ export function getClientInfo(request: Request) {
 }
 
 export function generateRequestId(): string {
-  return `req_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+  return `req_${randomUUID()}`;
 }

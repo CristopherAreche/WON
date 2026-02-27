@@ -43,12 +43,27 @@ export interface OpenRouterResponse {
 export class OpenRouterClient {
   private config: OpenRouterConfig;
   private baseUrl = 'https://openrouter.ai/api/v1';
+  private requestTimeoutMs = 30_000;
 
   constructor(config: OpenRouterConfig) {
     this.config = {
       model: 'openai/gpt-4o-mini', // Default cost-effective model
       ...config
     };
+  }
+
+  private async fetchWithTimeout(url: string, init: RequestInit): Promise<Response> {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), this.requestTimeoutMs);
+
+    try {
+      return await fetch(url, {
+        ...init,
+        signal: controller.signal,
+      });
+    } finally {
+      clearTimeout(timeout);
+    }
   }
 
   async createChatCompletion(
@@ -65,7 +80,7 @@ export class OpenRouterClient {
       presence_penalty: options?.presence_penalty,
     };
 
-    const response = await fetch(`${this.baseUrl}/chat/completions`, {
+    const response = await this.fetchWithTimeout(`${this.baseUrl}/chat/completions`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${this.config.apiKey}`,
@@ -86,7 +101,7 @@ export class OpenRouterClient {
   }
 
   async listModels(): Promise<any> {
-    const response = await fetch(`${this.baseUrl}/models`, {
+    const response = await this.fetchWithTimeout(`${this.baseUrl}/models`, {
       headers: {
         'Authorization': `Bearer ${this.config.apiKey}`,
       },
