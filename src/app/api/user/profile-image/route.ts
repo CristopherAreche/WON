@@ -22,8 +22,9 @@ const updateProfileImageSchema = z.object({
 async function resolveAuthenticatedUserId() {
   const session = await getServerSession(authOptions);
   const sessionUserId = (session?.user as { id?: string } | undefined)?.id;
+  const sessionEmail = session?.user?.email ?? null;
 
-  if (!session?.user?.email && !sessionUserId) {
+  if (!sessionEmail && !sessionUserId) {
     return null;
   }
 
@@ -31,8 +32,12 @@ async function resolveAuthenticatedUserId() {
     return sessionUserId;
   }
 
+  if (!sessionEmail) {
+    return null;
+  }
+
   const user = await prisma.user.findUnique({
-    where: { email: session?.user?.email as string },
+    where: { email: sessionEmail },
     select: { id: true },
   });
 

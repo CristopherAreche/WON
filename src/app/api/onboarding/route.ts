@@ -57,7 +57,8 @@ export async function POST(req: Request) {
   try {
     const session = await getServerSession(authOptions);
     const sessionUserId = (session?.user as { id?: string } | undefined)?.id;
-    if (!session?.user?.email && !sessionUserId) {
+    const sessionEmail = session?.user?.email ?? null;
+    if (!sessionEmail && !sessionUserId) {
       return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
     }
 
@@ -88,8 +89,12 @@ export async function POST(req: Request) {
 
     let userId = sessionUserId;
     if (!userId) {
+      if (!sessionEmail) {
+        return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
+      }
+
       const user = await prisma.user.findUnique({
-        where: { email: session.user.email as string },
+        where: { email: sessionEmail },
         select: { id: true },
       });
 
