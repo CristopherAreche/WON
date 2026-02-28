@@ -1,8 +1,16 @@
 "use client";
 
-import { useState, type MouseEvent } from "react";
+import { useEffect, useMemo, useState, type MouseEvent } from "react";
 import { useRouter } from "next/navigation";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
+import {
+  type CompletionMap,
+  type PlanProgressState,
+  type SessionStatus,
+  computePlanProgressState,
+  computeSessionStatuses,
+  readCompletionMap,
+} from "@/lib/workout-progress";
 
 interface PlanSummary {
   goal?: string;
@@ -59,7 +67,7 @@ interface OnboardingData {
 interface Plan {
   id: string;
   summary: PlanSummary;
-  days: WorkoutPlanData; // Now contains the complete workout plan structure
+  days: WorkoutPlanData;
   createdAt: Date;
   onboarding?: OnboardingData;
 }
@@ -68,47 +76,81 @@ interface WorkoutListProps {
   plan: Plan;
   onboarding?: OnboardingData;
   onPlanDeleted?: (planId: string) => void;
+  progressRefreshKey: number;
 }
 
 interface WorkoutCardProps {
   plan: Plan;
   onboarding?: OnboardingData;
   onPlanDeleted?: (planId: string) => void;
+  progressRefreshKey: number;
 }
 
-function WorkoutCard({ plan, onboarding, onPlanDeleted }: WorkoutCardProps) {
+function getStatusCircleClass(status: SessionStatus) {
+  switch (status) {
+    case "green":
+      return "bg-emerald-500";
+    case "yellow":
+      return "bg-amber-400";
+    case "red":
+    default:
+      return "bg-rose-500";
+  }
+}
+
+function getCtaConfig(state: PlanProgressState) {
+  switch (state) {
+    case "completed":
+      return {
+        label: "Completed",
+        className:
+          "bg-green-600 hover:bg-green-700 text-white shadow-lg shadow-green-500/30",
+      };
+    case "continue":
+      return {
+        label: "Continue",
+        className:
+          "bg-amber-500 hover:bg-amber-600 text-white shadow-lg shadow-amber-500/30",
+      };
+    case "start":
+    default:
+      return {
+        label: "Start",
+        className:
+          "bg-primary hover:bg-blue-700 text-white shadow-lg shadow-blue-500/30",
+      };
+  }
+}
+
+function WorkoutCard({
+  plan,
+  onboarding,
+  onPlanDeleted,
+  progressRefreshKey,
+}: WorkoutCardProps) {
   const router = useRouter();
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [completionMap, setCompletionMap] = useState<CompletionMap>({});
 
-  // Get workout image based on goal
-  const getWorkoutImage = () => {
-    // Priority: plan.days.meta.goal > plan.summary.goal > onboarding.goal
-    const goal =
-      plan.days?.meta?.goal || plan.summary?.goal || onboarding?.goal;
+  useEffect(() => {
+    setCompletionMap(readCompletionMap(plan.id));
+  }, [plan.id, progressRefreshKey]);
 
-    if (!goal) return "🏃‍♂️";
+  const sessionStatuses = useMemo(
+    () => computeSessionStatuses(plan.days?.sessions || [], completionMap),
+    [plan.days?.sessions, completionMap]
+  );
 
-    switch (goal) {
-      case "fat_loss":
-        return "🔥";
-      case "hypertrophy":
-        return "💪";
-      case "strength":
-        return "🏋️";
-      case "returning":
-        return "🔄";
-      case "general_health":
-        return "❤️";
-      default:
-        return "🏃‍♂️";
-    }
-  };
+  const planProgressState = useMemo(
+    () => computePlanProgressState(sessionStatuses),
+    [sessionStatuses]
+  );
+
+  const ctaConfig = getCtaConfig(planProgressState);
 
   const getGoal = () => {
-    // Priority: plan.days.meta.goal > plan.summary.goal > onboarding.goal
-    const goal =
-      plan.days?.meta?.goal || plan.summary?.goal || onboarding?.goal;
+    const goal = plan.days?.meta?.goal || plan.summary?.goal || onboarding?.goal;
 
     if (goal) {
       switch (goal) {
@@ -142,7 +184,6 @@ function WorkoutCard({ plan, onboarding, onPlanDeleted }: WorkoutCardProps) {
   };
 
   const getDuration = () => {
-    // Priority: plan.days.constraints.minutesPerSession > plan.summary.minutes > onboarding.minutesPerSession
     const duration =
       plan.days?.constraints?.minutesPerSession ||
       plan.summary?.minutes ||
@@ -155,7 +196,6 @@ function WorkoutCard({ plan, onboarding, onPlanDeleted }: WorkoutCardProps) {
   };
 
   const getDaysPerWeek = () => {
-    // Priority: actual sessions count > plan.summary.daysPerWeek > onboarding.daysPerWeek
     const sessionsCount = plan.days?.sessions?.length;
     const summaryDays = plan.summary?.daysPerWeek;
     const onboardingDays = onboarding?.daysPerWeek;
@@ -168,16 +208,8 @@ function WorkoutCard({ plan, onboarding, onPlanDeleted }: WorkoutCardProps) {
     return "3 days/week";
   };
 
-  const formatDate = (date: Date) => {
-    return new Intl.DateTimeFormat("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    }).format(date);
-  };
-
-  const handleDeleteClick = (e: MouseEvent) => {
-    e.stopPropagation(); // Prevent card click navigation
+  const handleDeleteClick = (event: MouseEvent) => {
+    event.stopPropagation();
     setShowDeleteModal(true);
   };
 
@@ -199,7 +231,6 @@ function WorkoutCard({ plan, onboarding, onPlanDeleted }: WorkoutCardProps) {
       const result = await response.json();
 
       if (result.ok) {
-        // Call the callback to remove from UI
         onPlanDeleted?.(plan.id);
         setShowDeleteModal(false);
       } else {
@@ -222,25 +253,29 @@ function WorkoutCard({ plan, onboarding, onPlanDeleted }: WorkoutCardProps) {
   return (
     <>
       <div
-        className="col-span-2 bg-surface-light p-5 rounded-2xl shadow-soft relative overflow-hidden group cursor-pointer"
+        className="w-full bg-surface-light p-5 rounded-2xl shadow-soft relative overflow-hidden cursor-pointer"
         onClick={() => router.push(`/app/workout/${plan.id}`)}
       >
-        <div className="absolute top-0 right-0 w-32 h-32 bg-blue-50 rounded-bl-full -mr-8 -mt-8 transition-transform group-hover:scale-110"></div>
+        <div className="absolute top-0 right-0 w-32 h-32 bg-blue-50 rounded-bl-full -mr-8 -mt-8 transition-transform"></div>
         <div className="relative z-10">
           <div className="flex justify-between items-start mb-4">
-            <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center text-primary">
-              <span className="material-icons-round">fitness_center</span>
-            </div>
             <div className="flex items-center gap-2">
-              <button
-                onClick={handleDeleteClick}
-                className="w-8 h-8 rounded-full bg-red-50 text-red-500 flex items-center justify-center hover:bg-red-100 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
-                title="Delete Plan"
-              >
-                <span className="material-icons-round text-sm">delete_outline</span>
-              </button>
-              <span className="bg-blue-50 text-primary text-xs font-bold px-2 py-1 rounded-full">AI PLAN</span>
+              <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center text-primary">
+                <span className="material-icons-round">fitness_center</span>
+              </div>
+              <span className="bg-blue-50 text-primary text-xs font-bold px-2 py-1 rounded-full">
+                AI PLAN
+              </span>
             </div>
+
+            <button
+              onClick={handleDeleteClick}
+              className="w-8 h-8 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center hover:bg-red-50 hover:text-red-500 transition-colors"
+              title="Delete plan"
+              aria-label="Delete plan"
+            >
+              <span className="material-icons-round text-sm">close</span>
+            </button>
           </div>
 
           <h3 className="text-xl font-bold text-slate-900 mb-1">{getGoal()} Plan</h3>
@@ -248,28 +283,38 @@ function WorkoutCard({ plan, onboarding, onPlanDeleted }: WorkoutCardProps) {
             {getDaysPerWeek()} • {getDuration()} • {getLocation()}
           </p>
 
-          <div className="flex items-center justify-between">
-            <div className="flex -space-x-2">
-              <div className="w-8 h-8 rounded-full border-2 border-white bg-slate-200"></div>
-              <div className="w-8 h-8 rounded-full border-2 border-white bg-slate-300"></div>
-              <div className="w-8 h-8 rounded-full border-2 border-white bg-primary flex items-center justify-center text-[10px] text-white font-bold">
-                +{plan.days?.sessions?.length || 3}
-              </div>
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex flex-wrap gap-1.5 max-w-[180px]">
+              {sessionStatuses.map((status, index) => (
+                <div
+                  key={`${plan.id}-session-status-${index}`}
+                  className={`w-6 h-6 sm:w-7 sm:h-7 rounded-full border-2 border-white shadow-sm ${getStatusCircleClass(
+                    status
+                  )}`}
+                  title={`Session ${index + 1}: ${
+                    status === "red"
+                      ? "Not started"
+                      : status === "yellow"
+                        ? "In progress"
+                        : "Completed"
+                  }`}
+                />
+              ))}
             </div>
+
             <button
-              className="bg-primary hover:bg-blue-700 text-white px-5 py-2 rounded-full text-sm font-semibold shadow-lg shadow-blue-500/30 transition-colors"
-              onClick={(e) => {
-                e.stopPropagation();
+              className={`px-5 py-2 rounded-full text-sm font-semibold transition-colors ${ctaConfig.className}`}
+              onClick={(event) => {
+                event.stopPropagation();
                 router.push(`/app/workout/${plan.id}`);
               }}
             >
-              Start
+              {ctaConfig.label}
             </button>
           </div>
         </div>
       </div>
 
-      {/* Delete Confirmation Modal */}
       <ConfirmationModal
         isOpen={showDeleteModal}
         onClose={handleDeleteCancel}
@@ -289,14 +334,14 @@ export default function WorkoutList({
   plan,
   onboarding,
   onPlanDeleted,
+  progressRefreshKey,
 }: WorkoutListProps) {
   return (
-    <div>
-      <WorkoutCard
-        plan={plan}
-        onboarding={onboarding}
-        onPlanDeleted={onPlanDeleted}
-      />
-    </div>
+    <WorkoutCard
+      plan={plan}
+      onboarding={onboarding}
+      onPlanDeleted={onPlanDeleted}
+      progressRefreshKey={progressRefreshKey}
+    />
   );
 }

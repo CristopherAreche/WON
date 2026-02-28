@@ -2,6 +2,14 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
+import {
+  clearWorkoutCompletedAt,
+  isPlanCompleted,
+  readCompletionMap,
+  readWorkoutCompletedAt,
+  setWorkoutCompletedAt,
+  writeCompletionMap,
+} from "@/lib/workout-progress";
 
 interface Exercise {
   name: string;
@@ -380,19 +388,11 @@ export default function WorkoutDetailsClient({
     type: "daily" | "all";
     sessionTitle?: string;
   }>({ isOpen: false, type: "daily" });
+  const [isProgressLoaded, setIsProgressLoaded] = useState(false);
 
   // Load saved exercise completion from localStorage on component mount
   React.useEffect(() => {
-    // Load saved progress from localStorage
-    const savedProgress = localStorage.getItem(`workout_progress_${plan.id}`);
-    if (savedProgress) {
-      try {
-        const progress = JSON.parse(savedProgress);
-        setExerciseCompletion(progress);
-      } catch (error) {
-        console.error("Error loading saved progress:", error);
-      }
-    }
+    setExerciseCompletion(readCompletionMap(plan.id));
 
     // Load saved exercise substitutions
     const savedSubstitutions = localStorage.getItem(`exercise_substitutions_${plan.id}`);
@@ -404,14 +404,25 @@ export default function WorkoutDetailsClient({
         console.error("Error loading saved substitutions:", error);
       }
     }
-  }, [plan]);
+
+    setIsProgressLoaded(true);
+  }, [plan.id]);
 
   // Save exercise completion to localStorage whenever it changes
   React.useEffect(() => {
-    if (Object.keys(exerciseCompletion).length > 0) {
-      localStorage.setItem(`workout_progress_${plan.id}`, JSON.stringify(exerciseCompletion));
+    if (!isProgressLoaded) return;
+
+    writeCompletionMap(plan.id, exerciseCompletion);
+
+    const completed = isPlanCompleted(plan.days.sessions || [], exerciseCompletion);
+    if (completed) {
+      if (!readWorkoutCompletedAt(plan.id)) {
+        setWorkoutCompletedAt(plan.id, new Date().toISOString());
+      }
+    } else {
+      clearWorkoutCompletedAt(plan.id);
     }
-  }, [exerciseCompletion, plan.id]);
+  }, [exerciseCompletion, isProgressLoaded, plan.days.sessions, plan.id]);
 
   // Save exercise substitutions to localStorage whenever they change
   React.useEffect(() => {

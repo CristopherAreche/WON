@@ -15,9 +15,35 @@ type GenerateDefaults = {
 
 const GOALS = ["fat_loss", "hypertrophy", "strength", "returning", "general_health"] as const;
 const EQUIPMENT = ["bodyweight", "bands", "dumbbells", "barbell", "machines"] as const;
+type QueryParams = Record<string, string | string[] | undefined>;
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
+}
+
+function firstQueryValue(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] : value;
+}
+
+function parseIntQuery(value: string | undefined) {
+  if (!value) return undefined;
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+function parseCsvQuery(value: string | string[] | undefined) {
+  const raw = firstQueryValue(value);
+  if (!raw) return undefined;
+
+  return raw
+    .split(",")
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+}
+
+function sanitizeInjuries(value: string | undefined, fallback = "") {
+  if (typeof value !== "string") return fallback;
+  return value.trim().slice(0, 500);
 }
 
 function normalizeGoal(value: unknown, fallback: GenerateDefaults["goal"]): GenerateDefaults["goal"] {
@@ -34,7 +60,10 @@ function normalizeEquipment(value: unknown, fallback: GenerateDefaults["equipmen
   return normalized.length > 0 ? normalized : fallback;
 }
 
-function normalizeLocation(value: unknown, fallback: "home" | "gym" | "park") {
+function normalizeLocation(
+  value: unknown,
+  fallback: "home" | "gym" | "park"
+): GenerateDefaults["location"] {
   if (Array.isArray(value)) {
     const normalized = value.filter((item): item is "home" | "gym" | "park" =>
       item === "home" || item === "gym" || item === "park"
@@ -49,7 +78,11 @@ function normalizeLocation(value: unknown, fallback: "home" | "gym" | "park") {
   return [fallback];
 }
 
-export default async function GeneratePage() {
+export default async function GeneratePage({
+  searchParams,
+}: {
+  searchParams?: Promise<QueryParams>;
+}) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.email) redirect("/auth/login");
 
@@ -105,5 +138,35 @@ export default async function GeneratePage() {
         : onboarding.injuries || "",
   };
 
-  return <GenerateClient defaults={defaults} />;
+  const query = (await searchParams) || {};
+  const queryGoal = firstQueryValue(query.goal);
+  const queryDaysPerWeek = parseIntQuery(firstQueryValue(query.daysPerWeek));
+  const queryMinutesPerSession = parseIntQuery(firstQueryValue(query.minutesPerSession));
+  const queryEquipment = parseCsvQuery(query.equipment);
+  const queryLocation = parseCsvQuery(query.location) || firstQueryValue(query.location);
+  const queryInjuries = firstQueryValue(query.injuries);
+
+  const effectiveDefaults: GenerateDefaults = {
+    goal: queryGoal ? normalizeGoal(queryGoal, defaults.goal) : defaults.goal,
+    daysPerWeek:
+      typeof queryDaysPerWeek === "number"
+        ? clamp(queryDaysPerWeek, 1, 7)
+        : defaults.daysPerWeek,
+    minutesPerSession:
+      typeof queryMinutesPerSession === "number"
+        ? clamp(queryMinutesPerSession, 30, 180)
+        : defaults.minutesPerSession,
+    equipment: queryEquipment
+      ? normalizeEquipment(queryEquipment, defaults.equipment)
+      : defaults.equipment,
+    location: queryLocation
+      ? normalizeLocation(queryLocation, defaults.location[0] || "home")
+      : defaults.location,
+    injuries:
+      queryInjuries !== undefined
+        ? sanitizeInjuries(queryInjuries, defaults.injuries || "")
+        : defaults.injuries || "",
+  };
+
+  return <GenerateClient defaults={effectiveDefaults} />;
 }

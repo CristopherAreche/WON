@@ -57,6 +57,7 @@ export default async function ProfilePage() {
       age={age}
       weightKg={weightKg}
       heightCm={heightCm}
+      dateOfBirth={onboardingAnswers ? onboardingAnswers.dateOfBirth.toISOString() : null}
     />
   );
 }

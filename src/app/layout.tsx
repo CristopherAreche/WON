@@ -1,17 +1,11 @@
 import type { Metadata } from "next";
-import { Inter, DM_Serif_Display } from "next/font/google";
+import { Inter } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/Providers";
 import { Suspense } from "react";
 
 const inter = Inter({
   variable: "--font-inter",
-  subsets: ["latin"],
-});
-
-const dmSerif = DM_Serif_Display({
-  weight: "400",
-  variable: "--font-dm-serif",
   subsets: ["latin"],
 });
 
@@ -55,7 +49,7 @@ export default function RootLayout({
         />
       </head>
       <body
-        className={`${inter.variable} ${dmSerif.variable} font-sans antialiased h-screen overflow-hidden flex flex-col`}
+        className={`${inter.variable} font-sans antialiased h-screen overflow-hidden flex flex-col`}
       >
         <Providers>
           <Suspense fallback={<div className="w-full py-2 bg-white border-b border-gray-200 h-16" />}>

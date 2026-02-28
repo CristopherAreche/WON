@@ -5,10 +5,12 @@ import Link from "next/link";
 export default function ProgressPage() {
   return (
     <div className="flex flex-col items-center justify-center min-h-[70vh] px-4 text-center animate-fade-in">
-      <div className="w-24 h-24 bg-surface-light text-indigo-500 rounded-full flex items-center justify-center mb-6 shadow-sm border border-slate-100 relative overflow-hidden">
+      <div className="w-28 h-28 bg-surface-light text-indigo-500 rounded-full flex items-center justify-center mb-6 shadow-sm border border-slate-100 relative overflow-hidden">
         {/* Decorative Grid Line */}
         <div className="absolute inset-0 opacity-10 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:12px_12px]"></div>
-        <span className="material-icons-round text-5xl relative z-10">monitoring</span>
+        <span className="material-icons-round text-7xl leading-none relative z-10 flex items-center justify-center w-full h-full">
+          monitoring
+        </span>
       </div>
 
       <h1 className="font-serif text-3xl text-slate-900 leading-tight mb-3">
