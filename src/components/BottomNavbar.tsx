@@ -7,15 +7,15 @@ export default function BottomNavbar() {
   const pathname = usePathname();
 
   return (
-    <nav className="fixed bottom-6 left-6 right-6 bg-surface-light/90 backdrop-blur-md rounded-2xl shadow-2xl border border-white/20 flex items-center justify-around px-2 py-3 z-50">
+    <nav className="fixed left-4 right-4 bg-surface-light/90 backdrop-blur-md rounded-2xl shadow-2xl border border-white/20 flex items-center justify-around px-1 py-3 z-50" style={{ bottom: 'max(16px, env(safe-area-inset-bottom, 16px))' }}>
       <Link href="/app/home" className={`flex flex-col items-center justify-center w-14 h-14 transition-transform active:scale-95 ${pathname === '/app/home' ? 'text-primary' : 'text-slate-400 hover:text-slate-600'}`}>
         <span className="material-icons-round text-2xl">home</span>
-        <span className="text-[10px] font-medium mt-1">Home</span>
+        <span className="text-[11px] font-medium mt-1">Home</span>
       </Link>
 
       <Link href="/app/workouts" className={`flex flex-col items-center justify-center w-14 h-14 transition-transform active:scale-95 ${pathname === '/app/workouts' ? 'text-primary' : 'text-slate-400 hover:text-slate-600'}`}>
         <span className="material-icons-round text-2xl">fitness_center</span>
-        <span className="text-[10px] font-medium mt-1">Workouts</span>
+        <span className="text-[11px] font-medium mt-1">Workouts</span>
       </Link>
 
       <div className="relative -top-6">
@@ -29,12 +29,12 @@ export default function BottomNavbar() {
 
       <Link href="/app/progress" className={`flex flex-col items-center justify-center w-14 h-14 transition-transform active:scale-95 ${pathname === '/app/progress' ? 'text-primary' : 'text-slate-400 hover:text-slate-600'}`}>
         <span className="material-icons-round text-2xl">bar_chart</span>
-        <span className="text-[10px] font-medium mt-1">Progress</span>
+        <span className="text-[11px] font-medium mt-1">Progress</span>
       </Link>
 
       <Link href="/app/profile" className={`flex flex-col items-center justify-center w-14 h-14 transition-transform active:scale-95 ${pathname.startsWith('/app/profile') ? 'text-primary' : 'text-slate-400 hover:text-slate-600'}`}>
         <span className="material-icons-round text-2xl">person</span>
-        <span className="text-[10px] font-medium mt-1">Profile</span>
+        <span className="text-[11px] font-medium mt-1">Profile</span>
       </Link>
     </nav>
   );

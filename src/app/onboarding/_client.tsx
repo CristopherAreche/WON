@@ -5,6 +5,7 @@ import { useForm, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import SecurityTokenBanner from "@/components/SecurityTokenBanner";
 
 const OnboardingSchema = z.object({
   fullName: z.string().min(2, "Name is required"),
@@ -175,6 +176,7 @@ export default function OnboardingClient({
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-display flex flex-col relative pb-20">
+      <SecurityTokenBanner />
       {loading && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/80 backdrop-blur-sm">
           <div className="bg-white rounded-3xl p-8 w-full max-w-sm mx-4 shadow-glass border border-slate-100/50 text-center">

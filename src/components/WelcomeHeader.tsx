@@ -28,7 +28,7 @@ export default function WelcomeHeader({ userName, onNotificationClick, avatarUrl
 
         {/* Welcome Text */}
         <div>
-          <p className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold mb-0.5">Welcome back</p>
+          <p className="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-0.5">Welcome back</p>
           <p className="text-xl font-bold text-slate-900 font-sans">
             {userName ? userName.split(' ')[0] : 'Coach'}
           </p>
@@ -39,7 +39,7 @@ export default function WelcomeHeader({ userName, onNotificationClick, avatarUrl
         type="button"
         onClick={onNotificationClick}
         aria-label="Notifications"
-        className="w-10 h-10 flex items-center justify-center rounded-full bg-white shadow-sm hover:shadow-md transition-shadow relative"
+        className="w-11 h-11 flex items-center justify-center rounded-full bg-white shadow-sm hover:shadow-md transition-shadow relative"
       >
         <span className="material-icons-round text-slate-600">notifications_none</span>
         <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-red-500 border border-white"></span>

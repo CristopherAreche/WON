@@ -546,7 +546,7 @@ export default function WorkoutDetailsClient({
       {/* Header */}
 
       {/* Workout Plan Info - Toggle List */}
-      <div className="max-w-4xl mx-auto px-4 py-6">
+      <div className="max-w-md mx-auto px-4 py-6">
         <div className="bg-white rounded-2xl shadow-lg overflow-hidden mb-6">
           {/* Toggle Header */}
           <button

@@ -8,7 +8,7 @@ export default async function ExercisesPage() {
 
   return (
     <div className="flex items-center justify-center p-8 min-h-full">
-      <div className="bg-white rounded-2xl p-8 w-full max-w-4xl shadow-lg">
+      <div className="bg-white rounded-2xl p-8 w-full max-w-md shadow-lg">
         <h1 className="text-2xl font-semibold text-black mb-6 text-center">
           Exercise Library
         </h1>

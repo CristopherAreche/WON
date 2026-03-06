@@ -36,7 +36,7 @@ export default function GlobalAppHeader({
   };
 
   return (
-    <header className="px-6 py-4 flex items-center justify-between w-full relative z-10 transition-all duration-300">
+    <header className="safe-top px-4 py-4 flex items-center justify-between w-full relative z-10 transition-all duration-300">
       {isHome ? (
         // Home Variant
         <>
@@ -51,7 +51,7 @@ export default function GlobalAppHeader({
               </div>
             </div>
             <div>
-              <p className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold mb-0.5">Welcome back</p>
+              <p className="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-0.5">Welcome back</p>
               <p className="text-xl font-bold text-slate-900 font-sans">
                 {userName ? userName.split(' ')[0] : 'Coach'}
               </p>
@@ -60,7 +60,7 @@ export default function GlobalAppHeader({
           <button
             type="button"
             aria-label="Notifications"
-            className="w-10 h-10 flex items-center justify-center rounded-full bg-white shadow-sm hover:shadow-md transition-shadow relative"
+            className="w-11 h-11 flex items-center justify-center rounded-full bg-white shadow-sm hover:shadow-md transition-shadow relative"
           >
             <span className="material-icons-round text-slate-600">notifications_none</span>
             <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-red-500 border border-white"></span>
@@ -72,7 +72,7 @@ export default function GlobalAppHeader({
           {/* Back Button */}
           <button
             onClick={() => router.back()}
-            className="w-10 h-10 flex items-center justify-center rounded-full bg-white shadow-sm hover:shadow-md transition-shadow text-slate-600 relative z-20"
+            className="w-11 h-11 flex items-center justify-center rounded-full bg-white shadow-sm hover:shadow-md transition-shadow text-slate-600 relative z-20"
           >
             <span className="material-icons-round">arrow_back</span>
           </button>
@@ -85,7 +85,7 @@ export default function GlobalAppHeader({
           <button
             type="button"
             aria-label="Notifications"
-            className="w-10 h-10 flex items-center justify-center rounded-full bg-white shadow-sm hover:shadow-md transition-shadow relative z-20"
+            className="w-11 h-11 flex items-center justify-center rounded-full bg-white shadow-sm hover:shadow-md transition-shadow relative z-20"
           >
             <span className="material-icons-round text-slate-600">notifications_none</span>
           </button>

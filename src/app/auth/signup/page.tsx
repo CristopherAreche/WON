@@ -72,9 +72,6 @@ export default function SignupPage() {
   }>({});
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [securityToken, setSecurityToken] = useState<string | null>(null);
-  const [showToken, setShowToken] = useState(false);
-  const [tokenCopied, setTokenCopied] = useState(false);
 
   const {
     register,
@@ -107,14 +104,13 @@ export default function SignupPage() {
       return;
     }
 
-    // Get the security token from signup response
+    // Save security token to sessionStorage so onboarding can display it
     const data = await res.json();
     if (data.securityToken) {
-      setSecurityToken(data.securityToken);
-      return; // Show token display instead of auto-login
+      sessionStorage.setItem("won_security_token", data.securityToken);
     }
 
-    // auto-login (fallback if no token in response)
+    // Auto-login after signup
     const result = await signIn("credentials", {
       email: values.email,
       password: values.password,
@@ -126,116 +122,6 @@ export default function SignupPage() {
     } else {
       setFieldErrors({ general: "Account created but login failed. Please try logging in manually." });
     }
-  }
-
-  const copyToClipboard = async () => {
-    if (!securityToken) return;
-    try {
-      await navigator.clipboard.writeText(securityToken);
-      setTokenCopied(true);
-      setTimeout(() => setTokenCopied(false), 2000);
-    } catch (error) {
-      console.error('Failed to copy to clipboard:', error);
-    }
-  };
-
-  const proceedToLogin = () => {
-    // Redirect to login page after user acknowledges security token
-    router.push("/auth/login");
-  };
-
-  // Show security token success view
-  if (securityToken) {
-    return (
-      <div className="relative flex h-full min-h-screen w-full flex-col max-w-md mx-auto shadow-2xl overflow-hidden bg-white font-display">
-        <div className="absolute top-[-15%] right-[-15%] w-[70%] h-[40%] bg-accent-mint/60 rounded-full blur-[80px] pointer-events-none opacity-80"></div>
-        <div className="absolute bottom-[-10%] left-[-20%] w-[80%] h-[40%] bg-lavender-start/20 rounded-full blur-[90px] pointer-events-none"></div>
-
-        <header className="relative z-10 flex items-center justify-center px-6 pt-10 pb-4">
-          <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-slate-900" style={{ fontSize: '28px' }}>fitness_center</span>
-            <h2 className="text-slate-900 text-2xl font-bold tracking-tight">WON</h2>
-          </div>
-        </header>
-
-        <main className="flex-1 flex flex-col justify-center px-8 relative z-10 w-full max-w-sm mx-auto">
-          <div className="text-center space-y-6">
-            <div className="w-16 h-16 bg-accent-mint/50 rounded-full flex items-center justify-center mx-auto shadow-sm">
-              <span className="material-symbols-outlined text-teal-600 text-3xl">check_circle</span>
-            </div>
-
-            <div>
-              <h1 className="text-[32px] font-semibold text-slate-900 tracking-tight mb-2">Account Created!</h1>
-              <p className="text-slate-500 text-sm font-medium">
-                Your account has been successfully created. Please save your security token below.
-              </p>
-            </div>
-
-            <div className="bg-amber-50/80 border border-amber-200/50 rounded-2xl p-5 shadow-soft">
-              <h3 className="font-medium text-amber-800 mb-2 flex items-center gap-2">
-                <span className="material-symbols-outlined text-[18px]">warning</span>
-                Save Your Security Token
-              </h3>
-              <p className="text-sm text-amber-700/80 mb-4 leading-relaxed">
-                This 10-digit code is required for password changes and resets. Keep it secure and accessible.
-              </p>
-
-              <div className="relative">
-                <input
-                  type="text"
-                  value={showToken ? securityToken : '••••••••••'}
-                  readOnly
-                  className="w-full border-0 rounded-xl px-4 py-3 pr-20 bg-white font-mono text-center tracking-wider text-slate-800 shadow-sm focus:ring-2 focus:ring-amber-200"
-                />
-
-                <div className="absolute right-2 top-1/2 transform -translate-y-1/2 flex space-x-1">
-                  {/* Copy Button */}
-                  <button
-                    onClick={copyToClipboard}
-                    className="p-2 text-slate-400 hover:text-amber-600 transition-colors focus:outline-none"
-                    title={tokenCopied ? 'Copied!' : 'Copy to clipboard'}
-                  >
-                    {tokenCopied ? (
-                      <span className="material-symbols-outlined text-emerald-500 text-[20px]">check</span>
-                    ) : (
-                      <span className="material-symbols-outlined text-[20px]">content_copy</span>
-                    )}
-                  </button>
-
-                  {/* Show/Hide Button */}
-                  <button
-                    onClick={() => setShowToken(!showToken)}
-                    className="p-2 text-slate-400 hover:text-amber-600 transition-colors focus:outline-none"
-                    title={showToken ? 'Hide token' : 'Show token'}
-                  >
-                    <span className="material-symbols-outlined text-[20px]">
-                      {showToken ? "visibility_off" : "visibility"}
-                    </span>
-                  </button>
-                </div>
-              </div>
-
-              {tokenCopied && (
-                <p className="text-sm text-emerald-600 mt-3 font-medium">✓ Token copied to clipboard!</p>
-              )}
-            </div>
-
-            <button
-              onClick={proceedToLogin}
-              className="w-full mt-4 py-4 px-6 rounded-2xl bg-gradient-to-r from-lavender-start to-lavender-end hover:from-indigo-300 hover:to-indigo-400 text-white font-semibold text-lg shadow-lg shadow-indigo-200 transform transition-transform active:scale-[0.98] flex items-center justify-center gap-2"
-            >
-              Continue to Login
-              <span className="material-symbols-outlined text-[20px]">arrow_forward</span>
-            </button>
-
-            <p className="text-xs text-slate-400 font-medium">
-              Save it now. It is only shown in full during account creation.
-            </p>
-          </div>
-        </main>
-        <footer className="relative z-10 py-6 text-center"></footer>
-      </div>
-    );
   }
 
   return (
