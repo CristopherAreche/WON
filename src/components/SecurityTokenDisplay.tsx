@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { ApiError } from '@/api/http';
+import { apiClient } from '@/api/client';
 
 interface SecurityTokenDisplayProps {
   className?: string;
@@ -17,21 +19,14 @@ export default function SecurityTokenDisplay({ className = '' }: SecurityTokenDi
 
   const fetchSecurityToken = async () => {
     try {
-      const response = await fetch('/api/auth/security-token');
-      const result = await response.json();
-
-      if (response.ok) {
-        setTokenMasked(result.securityTokenMasked);
-      } else {
-        // Handle specific error cases
-        if (response.status === 503) {
-          setError('Security token feature is temporarily unavailable while we update the system.');
-        } else {
-          setError(result.error || 'Failed to fetch security token');
-        }
-      }
+      const result = await apiClient.auth.getSecurityToken();
+      setTokenMasked(result.securityTokenMasked);
     } catch (error) {
-      setError('Network error. Please try again later.');
+      if (error instanceof ApiError && error.status === 503) {
+        setError('Security token feature is temporarily unavailable while we update the system.');
+      } else {
+        setError(error instanceof Error ? error.message : 'Network error. Please try again later.');
+      }
     } finally {
       setIsLoading(false);
     }

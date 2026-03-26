@@ -6,15 +6,16 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { apiClient } from '@/api/client';
 
 const resetPasswordSchema = z.object({
   email: z.string().email('Invalid email'),
   securityToken: z.string().length(10, 'Security token must be exactly 10 digits'),
   newPassword: z
     .string()
-    .min(12, 'Password must be at least 12 characters')
+    .min(10, 'Password must be at least 10 characters')
     .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).+$/, 'Use upper, lower, number, and symbol'),
-  confirmPassword: z.string().min(12, 'Password must be at least 12 characters'),
+  confirmPassword: z.string().min(10, 'Password must be at least 10 characters'),
 }).refine((data) => data.newPassword === data.confirmPassword, {
   message: "Passwords don't match",
   path: ["confirmPassword"],
@@ -41,26 +42,17 @@ export default function ResetPasswordTokenPage() {
     setError(null);
 
     try {
-      const response = await fetch('/api/auth/forgot-password-token', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
+      await apiClient.auth.resetPasswordWithSecurityToken({
+        email: data.email,
+        securityToken: data.securityToken,
+        newPassword: data.newPassword,
       });
-
-      const result = await response.json();
-
-      if (response.ok) {
-        setSuccess(true);
-        setTimeout(() => {
-          router.push('/auth/login');
-        }, 2000);
-      } else {
-        setError(result.error || 'Failed to reset password. Please try again.');
-      }
+      setSuccess(true);
+      setTimeout(() => {
+        router.push('/auth/login');
+      }, 2000);
     } catch (error) {
-      setError('Network error. Please check your connection and try again.');
+      setError(error instanceof Error ? error.message : 'Network error. Please check your connection and try again.');
     } finally {
       setIsSubmitting(false);
     }

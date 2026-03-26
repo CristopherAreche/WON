@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import { apiClient } from '@/api/client';
 
 interface DeleteAccountButtonProps {
   userName: string;
@@ -53,46 +53,28 @@ export default function DeleteAccountButton({ userName }: DeleteAccountButtonPro
     setError(null);
 
     try {
-      const response = await fetch('/api/auth/delete-account', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name: nameInput,
-          confirmationText: confirmationInput,
-        }),
+      await apiClient.auth.deleteAccount({
+        name: nameInput,
+        confirmationText: confirmationInput,
       });
 
-      const result = await response.json();
+      setShowConfirmModal(false);
+      setShowSuccessModal(true);
 
-      if (response.ok) {
-        // Close confirmation modal and show success modal
-        setShowConfirmModal(false);
-        setShowSuccessModal(true);
-        
-        // Sign out user
-        await signOut({ redirect: false });
+      let timeLeft = 10;
+      setCountdown(timeLeft);
 
-        // Start countdown
-        let timeLeft = 10;
+      const countdownInterval = setInterval(() => {
+        timeLeft -= 1;
         setCountdown(timeLeft);
-        
-        const countdownInterval = setInterval(() => {
-          timeLeft -= 1;
-          setCountdown(timeLeft);
-          
-          if (timeLeft <= 0) {
-            clearInterval(countdownInterval);
-            router.push('/auth/login');
-          }
-        }, 1000);
 
-      } else {
-        setError(result.error || 'Failed to delete account. Please try again.');
-      }
+        if (timeLeft <= 0) {
+          clearInterval(countdownInterval);
+          router.push('/auth/login');
+        }
+      }, 1000);
     } catch (error) {
-      setError('Network error. Please check your connection and try again.');
+      setError(error instanceof Error ? error.message : 'Network error. Please check your connection and try again.');
     } finally {
       setIsDeleting(false);
     }

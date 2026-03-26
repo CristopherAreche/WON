@@ -1,10 +1,7 @@
-export const runtime = "nodejs";
-
 import { proxyWonApiRequest } from "@/lib/won-api-session";
 
 export async function GET(request: Request) {
   return proxyWonApiRequest(request, {
-    path: "/api/auth/security-token",
-    auth: true,
+    path: "/api/health/db",
   });
 }

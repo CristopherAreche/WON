@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import SecurityTokenBanner from "@/components/SecurityTokenBanner";
+import { apiClient } from "@/api/client";
 
 const OnboardingSchema = z.object({
   fullName: z.string().min(2, "Name is required"),
@@ -129,38 +130,22 @@ export default function OnboardingClient({
 
       const parsedDateOfBirth = new Date(formValues.dateOfBirth).toISOString();
 
-      const onboardingRes = await fetch("/api/onboarding", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          fullName: formValues.fullName,
-          dateOfBirth: parsedDateOfBirth,
-          height: formValues.height,
-          currentWeight: formValues.currentWeight,
-          goal: formValues.goal,
-          experience: formValues.experience,
-          daysPerWeek: formValues.daysPerWeek,
-          minutesPerSession: formValues.minutesPerSession,
-          equipment: formValues.equipment,
-          location: formValues.location,
-          injuries: formValues.injuries,
-        }),
+      await apiClient.onboarding.save({
+        fullName: formValues.fullName,
+        dateOfBirth: parsedDateOfBirth,
+        height: formValues.height,
+        currentWeight: formValues.currentWeight,
+        goal: formValues.goal,
+        experience: formValues.experience,
+        daysPerWeek: formValues.daysPerWeek,
+        minutesPerSession: formValues.minutesPerSession,
+        equipment: formValues.equipment,
+        location: formValues.location,
+        injuries: formValues.injuries,
       });
-
-      if (!onboardingRes.ok) {
-        throw new Error("Failed to save onboarding data");
-      }
 
       setLoadingStage("Generating your personalized workout...");
-      const generateRes = await fetch("/api/ai/generate-plan", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
-      });
-
-      if (!generateRes.ok) {
-        throw new Error("Failed to generate plan");
-      }
+      await apiClient.plans.generate({});
 
       setLoadingStage("Preparing your dashboard...");
       await new Promise((resolve) => setTimeout(resolve, 600));

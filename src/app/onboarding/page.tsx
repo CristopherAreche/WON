@@ -1,31 +1,13 @@
-// src/app/onboarding/page.tsx
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
-import { prisma } from "@/lib/db";
 import { redirect } from "next/navigation";
+import { requireWonUser } from "@/lib/won-api-server";
 import OnboardingClient from "./_client";
 
 export default async function OnboardingPage() {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.email) redirect("/auth/login");
+  const user = await requireWonUser();
 
-  const user = await prisma.user.findUnique({
-    where: { email: session.user.email },
-    select: {
-      name: true,
-      email: true,
-      onboarding: { select: { userId: true } },
-    },
-  });
-  if (!user) redirect("/auth/login");
-
-  if (user.onboarding) {
+  if (user.onboardingComplete) {
     redirect("/app/home");
   }
 
-  return (
-    <OnboardingClient 
-      userName={user.name ?? user.email} 
-    />
-  );
+  return <OnboardingClient userName={user.name ?? user.email} />;
 }

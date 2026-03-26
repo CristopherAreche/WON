@@ -6,6 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { apiClient } from '@/api/client';
 
 // Utility function to prevent emoji input
 const preventEmojiInput = (e: React.KeyboardEvent) => {
@@ -47,23 +48,10 @@ export default function ForgotPasswordPage() {
     setError(null);
 
     try {
-      const response = await fetch('/api/auth/forgot-password', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-      });
-
-      const result = await response.json();
-
-      if (response.ok) {
-        setIsSubmitted(true);
-      } else {
-        setError(result.error || 'An error occurred. Please try again.');
-      }
+      await apiClient.auth.forgotPassword(data);
+      setIsSubmitted(true);
     } catch (error) {
-      setError('Network error. Please check your connection and try again.');
+      setError(error instanceof Error ? error.message : 'Network error. Please check your connection and try again.');
     } finally {
       setIsSubmitting(false);
     }

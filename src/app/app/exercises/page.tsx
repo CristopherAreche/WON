@@ -1,10 +1,7 @@
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
-import { redirect } from "next/navigation";
+import { requireWonUser } from "@/lib/won-api-server";
 
 export default async function ExercisesPage() {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.email) redirect("/auth/login");
+  await requireWonUser();
 
   return (
     <div className="flex items-center justify-center p-8 min-h-full">

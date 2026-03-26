@@ -1,33 +1,6 @@
-import { cache } from "react";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
-import { prisma } from "@/lib/db";
 import { redirect } from "next/navigation";
 import WorkoutsPageClient from "./WorkoutsPageClient";
-
-const getUser = cache(async (email: string) => {
-  return await prisma.user.findUnique({
-    where: { email },
-    select: {
-      id: true,
-    },
-  });
-});
-
-const getWorkoutPlans = cache(async (userId: string) => {
-  return await prisma.workoutPlan.findMany({
-    where: { userId },
-    orderBy: { createdAt: "desc" },
-    take: 24,
-    select: {
-      id: true,
-      summary: true,
-      days: true,
-      createdAt: true,
-      onboarding: true,
-    },
-  });
-});
+import { fetchWonApiServerJson, type WonHomePayload } from "@/lib/won-api-server";
 
 interface PlanSummary {
   goal?: string;
@@ -90,20 +63,18 @@ interface Plan {
 }
 
 export default async function WorkoutsPage() {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.email) redirect("/auth/login");
+  const home = await fetchWonApiServerJson<WonHomePayload>("/api/user/home");
 
-  const user = await getUser(session.user.email);
-  if (!user) redirect("/auth/login");
+  if (!home) {
+    redirect("/auth/login");
+  }
 
-  const workoutPlans = await getWorkoutPlans(user.id);
-
-  const plans: Plan[] = workoutPlans.map((workoutPlan) => ({
-    id: workoutPlan.id,
-    summary: workoutPlan.summary as PlanSummary,
-    days: workoutPlan.days as unknown as WorkoutPlanData,
-    createdAt: workoutPlan.createdAt,
-    onboarding: (workoutPlan.onboarding as OnboardingData | null) || undefined,
+  const plans: Plan[] = home.plans.map((plan) => ({
+    id: plan.id,
+    summary: plan.summary as PlanSummary,
+    days: plan.days as unknown as WorkoutPlanData,
+    createdAt: new Date(plan.createdAt),
+    onboarding: (plan.onboarding as OnboardingData | undefined) || undefined,
   }));
 
   return <WorkoutsPageClient plans={plans} />;

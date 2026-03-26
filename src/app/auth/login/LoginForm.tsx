@@ -3,10 +3,11 @@
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { signIn } from "next-auth/react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useState } from "react";
+import { apiClient } from "@/api/client";
+import { ApiError } from "@/api/http";
 
 // Utility function to prevent emoji input
 const preventEmojiInput = (e: React.KeyboardEvent) => {
@@ -63,14 +64,16 @@ export default function LoginForm() {
 
   async function onSubmit(values: z.infer<typeof LoginSchema>) {
     setErrorMsg(null);
-    const result = await signIn("credentials", {
-      ...values,
-      redirect: false,
-    });
-
-    if (result?.ok) {
+    try {
+      await apiClient.auth.signIn(values);
       router.push(callbackUrl);
-    } else {
+      router.refresh();
+    } catch (error) {
+      if (error instanceof ApiError && error.code === "INVALID_CREDENTIALS") {
+        setErrorMsg("Invalid email or password. Please try again.");
+        return;
+      }
+
       setErrorMsg("Invalid email or password. Please try again.");
     }
   }

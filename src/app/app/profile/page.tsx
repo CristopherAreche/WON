@@ -1,15 +1,20 @@
-import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
-import { authOptions } from "@/lib/auth";
-import { prisma } from "@/lib/db";
 import ProfileClient from "./ProfileClient";
+import {
+  fetchWonApiServerJson,
+  type WonProfilePayload,
+} from "@/lib/won-api-server";
 
-function calculateAge(dateOfBirth: Date) {
+function calculateAge(dateOfBirthISO: string) {
+  const dateOfBirth = new Date(dateOfBirthISO);
   const today = new Date();
   let age = today.getFullYear() - dateOfBirth.getFullYear();
   const monthDiff = today.getMonth() - dateOfBirth.getMonth();
 
-  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dateOfBirth.getDate())) {
+  if (
+    monthDiff < 0 ||
+    (monthDiff === 0 && today.getDate() < dateOfBirth.getDate())
+  ) {
     age -= 1;
   }
 
@@ -17,47 +22,33 @@ function calculateAge(dateOfBirth: Date) {
 }
 
 export default async function ProfilePage() {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.email) redirect("/auth/login");
+  const profile = await fetchWonApiServerJson<WonProfilePayload>("/api/user/profile");
 
-  const user = await prisma.user.findUnique({
-    where: { email: session.user.email },
-    select: {
-      id: true,
-      name: true,
-      email: true,
-      createdAt: true,
-      profileImageDataUrl: true,
-    },
-  });
+  if (!profile) {
+    redirect("/auth/login");
+  }
 
-  if (!user) redirect("/auth/login");
-
-  const onboardingAnswers = await prisma.onboardingAnswers.findUnique({
-    where: { userId: user.id },
-    select: {
-      dateOfBirth: true,
-      height: true,
-      currentWeight: true,
-    },
-  });
-
-  const age = onboardingAnswers ? calculateAge(onboardingAnswers.dateOfBirth) : null;
-  const weightKg = onboardingAnswers ? Math.round(onboardingAnswers.currentWeight * 0.45359237) : null;
-  const heightCm = onboardingAnswers ? Math.round(onboardingAnswers.height * 30.48) : null;
+  const dateOfBirth = profile.onboarding?.dateOfBirth || null;
+  const age = dateOfBirth ? calculateAge(dateOfBirth) : null;
+  const weightKg = profile.onboarding
+    ? Math.round(profile.onboarding.currentWeight * 0.45359237)
+    : null;
+  const heightCm = profile.onboarding
+    ? Math.round(profile.onboarding.height * 30.48)
+    : null;
 
   return (
     <ProfileClient
-      userName={user.name}
-      userEmail={user.email}
-      userCreatedAt={user.createdAt.toISOString()}
-      userIdentityLabel={user.name || user.email}
-      profileImageDataUrl={user.profileImageDataUrl}
-      fallbackAvatarUrl={session.user.image || null}
+      userName={profile.user.name}
+      userEmail={profile.user.email}
+      userCreatedAt={profile.user.createdAt}
+      userIdentityLabel={profile.user.name || profile.user.email}
+      profileImageDataUrl={profile.user.profileImageUri || null}
+      fallbackAvatarUrl={null}
       age={age}
       weightKg={weightKg}
       heightCm={heightCm}
-      dateOfBirth={onboardingAnswers ? onboardingAnswers.dateOfBirth.toISOString() : null}
+      dateOfBirth={dateOfBirth}
     />
   );
 }

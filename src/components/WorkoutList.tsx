@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState, type MouseEvent } from "react";
 import { useRouter } from "next/navigation";
+import { apiClient } from "@/api/client";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
 import {
   type CompletionMap,
@@ -216,26 +217,9 @@ function WorkoutCard({
   const handleDeleteConfirm = async () => {
     try {
       setIsDeleting(true);
-
-      const response = await fetch(`/api/workout/${plan.id}`, {
-        method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to delete workout plan");
-      }
-
-      const result = await response.json();
-
-      if (result.ok) {
-        onPlanDeleted?.(plan.id);
-        setShowDeleteModal(false);
-      } else {
-        throw new Error(result.error || "Failed to delete workout plan");
-      }
+      await apiClient.plans.delete(plan.id);
+      onPlanDeleted?.(plan.id);
+      setShowDeleteModal(false);
     } catch (error) {
       console.error("Error deleting workout plan:", error);
       alert("Failed to delete workout plan. Please try again.");

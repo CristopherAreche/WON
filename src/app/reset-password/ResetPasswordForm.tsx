@@ -6,7 +6,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { signIn } from 'next-auth/react';
+import { apiClient } from '@/api/client';
+import { ApiError } from '@/api/http';
 
 // Utility function to prevent emoji input
 const preventEmojiInput = (e: React.KeyboardEvent) => {
@@ -19,7 +20,7 @@ const preventEmojiInput = (e: React.KeyboardEvent) => {
 const resetPasswordSchema = z.object({
   newPassword: z
     .string()
-    .min(12, 'Password must be at least 12 characters')
+    .min(10, 'Password must be at least 10 characters')
     .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
     .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
     .regex(/\d/, 'Password must contain at least one number')
@@ -85,8 +86,8 @@ export default function ResetPasswordForm() {
     const feedback: string[] = [];
     let score = 0;
 
-    if (newPassword.length >= 12) score++;
-    else feedback.push('At least 12 characters');
+    if (newPassword.length >= 10) score++;
+    else feedback.push('At least 10 characters');
 
     if (/[A-Z]/.test(newPassword)) score++;
     else feedback.push('One uppercase letter');
@@ -113,43 +114,19 @@ export default function ResetPasswordForm() {
     setError(null);
 
     try {
-      const response = await fetch('/api/auth/reset-password', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          token,
-          code,
-          newPassword: data.newPassword,
-        }),
+      await apiClient.auth.resetPassword({
+        token,
+        code,
+        newPassword: data.newPassword,
       });
 
-      const result = await response.json();
-
-      if (response.ok) {
-        // Success! Automatically sign in the user
-        const signInResult = await signIn('credentials', {
-          email: result.email,
-          password: data.newPassword,
-          redirect: false,
-        });
-
-        if (signInResult?.ok) {
-          router.push('/app/home');
-        } else {
-          // Sign in failed, but password was reset successfully
-          router.push('/auth/login?message=password-reset-success');
-        }
-      } else {
-        if (response.status === 429) {
-          setError('Too many reset attempts. Please wait 15 minutes before trying again.');
-        } else {
-          setError(result.error || 'Failed to reset password. Please try again.');
-        }
-      }
+      router.push('/auth/login?message=password-reset-success');
     } catch (error) {
-      setError('Network error. Please check your connection and try again.');
+      if (error instanceof ApiError && error.status === 429) {
+        setError('Too many reset attempts. Please wait 15 minutes before trying again.');
+      } else {
+        setError(error instanceof Error ? error.message : 'Network error. Please check your connection and try again.');
+      }
     } finally {
       setIsSubmitting(false);
     }

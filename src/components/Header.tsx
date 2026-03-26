@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useSession } from "next-auth/react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 
 const NotificationIcon = () => (
@@ -54,7 +53,6 @@ const ArrowLeftIcon = () => (
 
 export default function Header() {
   const [hasUnreadNotification] = useState(true);
-  const { data: session } = useSession();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -62,22 +60,20 @@ export default function Header() {
   // Show back arrow on all pages except home, plus onboarding when returning user
   const isHomePage = pathname === '/app/home';
   const isOnboardingPage = pathname === '/onboarding';
-  const isReturningUser = searchParams?.get('returning') === 'true';
-  const showBackButton = session?.user && (
-    (!isHomePage && pathname?.startsWith('/app/')) || 
-    (isOnboardingPage && isReturningUser)
-  );
-
-  // Show notifications icon when logged in and on app routes or onboarding
   const isAppRoute = pathname?.startsWith('/app/');
-  const showNotifications = session?.user && (isAppRoute || isOnboardingPage);
+  const isReturningUser = searchParams?.get('returning') === 'true';
+  const showBackButton =
+    (!isHomePage && isAppRoute) || (isOnboardingPage && isReturningUser);
+
+  // Show notifications icon on authenticated surfaces.
+  const showNotifications = isAppRoute || isOnboardingPage;
 
   const handleBack = () => {
     router.back();
   };
 
   const handleLogoClick = () => {
-    if (session?.user) {
+    if (isAppRoute || isOnboardingPage) {
       router.push('/app/home');
     }
   };
@@ -100,7 +96,7 @@ export default function Header() {
           <button 
             onClick={handleLogoClick}
             className="flex items-center space-x-2 hover:opacity-80 transition-opacity"
-            disabled={!session?.user}
+            disabled={!isAppRoute && !isOnboardingPage}
           >
             <DumbbellIcon />
             <h1 className="text-2xl font-black text-black">WON</h1>

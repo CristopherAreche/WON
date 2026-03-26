@@ -1,8 +1,9 @@
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
-import { prisma } from "@/lib/db";
 import { redirect } from "next/navigation";
 import GenerateClient from "./GenerateClient";
+import {
+  fetchWonApiServerJson,
+  type WonHomePayload,
+} from "@/lib/won-api-server";
 
 type GenerateDefaults = {
   goal: "fat_loss" | "hypertrophy" | "strength" | "returning" | "general_health";
@@ -46,7 +47,10 @@ function sanitizeInjuries(value: string | undefined, fallback = "") {
   return value.trim().slice(0, 500);
 }
 
-function normalizeGoal(value: unknown, fallback: GenerateDefaults["goal"]): GenerateDefaults["goal"] {
+function normalizeGoal(
+  value: unknown,
+  fallback: GenerateDefaults["goal"]
+): GenerateDefaults["goal"] {
   return typeof value === "string" && GOALS.includes(value as GenerateDefaults["goal"])
     ? (value as GenerateDefaults["goal"])
     : fallback;
@@ -83,59 +87,40 @@ export default async function GeneratePage({
 }: {
   searchParams?: Promise<QueryParams>;
 }) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.email) redirect("/auth/login");
+  const home = await fetchWonApiServerJson<WonHomePayload>("/api/user/home");
 
-  const user = await prisma.user.findUnique({
-    where: { email: session.user.email },
-    select: { id: true },
-  });
+  if (!home) {
+    redirect("/auth/login");
+  }
 
-  if (!user) redirect("/auth/login");
-
-  const onboarding = await prisma.onboardingAnswers.findUnique({
-    where: { userId: user.id },
-    select: {
-      goal: true,
-      daysPerWeek: true,
-      minutesPerSession: true,
-      equipment: true,
-      location: true,
-      injuries: true,
-    },
-  });
-
-  if (!onboarding) {
+  if (!home.onboardingBase) {
     redirect("/onboarding");
   }
 
-  const latestPlan = await prisma.workoutPlan.findFirst({
-    where: { userId: user.id },
-    orderBy: { createdAt: "desc" },
-    select: {
-      onboarding: true,
-    },
-  });
-
-  const snapshot = (latestPlan?.onboarding || {}) as Record<string, unknown>;
+  const latestPlanSnapshot = home.plans[0]?.onboarding || {};
 
   const defaults: GenerateDefaults = {
-    goal: normalizeGoal(snapshot.goal, onboarding.goal),
+    goal: normalizeGoal(latestPlanSnapshot.goal, home.onboardingBase.goal),
     daysPerWeek:
-      typeof snapshot.daysPerWeek === "number"
-        ? clamp(snapshot.daysPerWeek, 1, 7)
-        : onboarding.daysPerWeek,
+      typeof latestPlanSnapshot.daysPerWeek === "number"
+        ? clamp(latestPlanSnapshot.daysPerWeek, 1, 7)
+        : home.onboardingBase.daysPerWeek,
     minutesPerSession:
-      typeof snapshot.minutesPerSession === "number"
-        ? clamp(snapshot.minutesPerSession, 30, 180)
-        : onboarding.minutesPerSession,
-    equipment:
-      normalizeEquipment(snapshot.equipment, onboarding.equipment as GenerateDefaults["equipment"]),
-    location: normalizeLocation(snapshot.location, onboarding.location as "home" | "gym" | "park"),
+      typeof latestPlanSnapshot.minutesPerSession === "number"
+        ? clamp(latestPlanSnapshot.minutesPerSession, 30, 180)
+        : home.onboardingBase.minutesPerSession,
+    equipment: normalizeEquipment(
+      latestPlanSnapshot.equipment,
+      home.onboardingBase.equipment
+    ),
+    location: normalizeLocation(
+      latestPlanSnapshot.location,
+      home.onboardingBase.location[0] || "home"
+    ),
     injuries:
-      typeof snapshot.injuries === "string"
-        ? snapshot.injuries
-        : onboarding.injuries || "",
+      typeof latestPlanSnapshot.injuries === "string"
+        ? latestPlanSnapshot.injuries
+        : home.onboardingBase.injuries || "",
   };
 
   const query = (await searchParams) || {};

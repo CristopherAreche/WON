@@ -6,6 +6,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { ApiError } from '@/api/http';
+import { apiClient } from '@/api/client';
 
 // Utility function to prevent emoji input
 const preventEmojiInput = (e: React.KeyboardEvent) => {
@@ -79,35 +81,22 @@ export default function VerifyResetCodeForm() {
     setError(null);
 
     try {
-      const requestData = {
+      await apiClient.auth.verifyResetCode({
         token,
         code: data.code,
-      };
-
-      const response = await fetch('/api/auth/verify-reset-code', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestData),
       });
-
-      const result = await response.json();
-
-      if (response.ok) {
-        // Code verified, redirect to reset password page
-        router.push(`/reset-password?token=${token}&code=${data.code}`);
+      router.push(`/reset-password?token=${token}&code=${data.code}`);
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 429) {
+        setError('Too many failed attempts. Please wait 15 minutes before trying again.');
+      } else if (
+        error instanceof ApiError &&
+        (error.code === 'INVALID_TOKEN_OR_CODE' || error.code === 'INVALID_OR_EXPIRED_CODE')
+      ) {
+        setError('Invalid code. Please check your email and try again.');
       } else {
-        if (response.status === 429) {
-          setError('Too many failed attempts. Please wait 15 minutes before trying again.');
-        } else if (result.error === 'INVALID_TOKEN_OR_CODE') {
-          setError('Invalid code. Please check your email and try again.');
-        } else {
-          setError(result.error || 'Verification failed. Please try again.');
-        }
+        setError(error instanceof Error ? error.message : 'Network error. Please check your connection and try again.');
       }
-    } catch {
-      setError('Network error. Please check your connection and try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -120,21 +109,11 @@ export default function VerifyResetCodeForm() {
     setError(null);
 
     try {
-      const response = await fetch('/api/auth/forgot-password', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email }),
-      });
-
-      if (response.ok) {
-        // New code sent, clear the current token since it's invalidated
-        setToken('');
-        alert('A new verification code has been sent to your email.');
-      }
-    } catch {
-      setError('Failed to resend code. Please try again.');
+      await apiClient.auth.forgotPassword({ email });
+      setToken('');
+      alert('A new verification code has been sent to your email.');
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Failed to resend code. Please try again.');
     }
   };
 

@@ -1,6 +1,5 @@
 "use client";
 
-import { useSession } from "next-auth/react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 
@@ -70,12 +69,10 @@ const ChartIcon = () => (
 );
 
 export default function Footer() {
-  const { data: session } = useSession();
   const pathname = usePathname();
 
-  // Show navigation icons only for logged-in users on app pages
   const isAppPage = pathname?.startsWith("/app/");
-  const showNavigation = session?.user && isAppPage;
+  const showNavigation = isAppPage;
 
   if (!showNavigation) {
     // Show simple footer with name for non-logged-in users or auth pages

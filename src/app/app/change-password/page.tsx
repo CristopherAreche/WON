@@ -5,14 +5,15 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useRouter } from 'next/navigation';
-import { useSession } from 'next-auth/react';
+import { apiClient } from '@/api/client';
+import { ApiError } from '@/api/http';
 
 const changePasswordSchema = z.object({
   newPassword: z
     .string()
-    .min(12, 'Password must be at least 12 characters')
+    .min(10, 'Password must be at least 10 characters')
     .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).+$/, 'Use upper, lower, number, and symbol'),
-  confirmPassword: z.string().min(12, 'Password must be at least 12 characters'),
+  confirmPassword: z.string().min(10, 'Password must be at least 10 characters'),
   securityToken: z.string().length(10, 'Security token must be exactly 10 digits'),
 }).refine((data) => data.newPassword === data.confirmPassword, {
   message: "Passwords don't match",
@@ -26,7 +27,6 @@ export default function ChangePasswordPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const router = useRouter();
-  const { status } = useSession();
 
   const {
     register,
@@ -36,45 +36,22 @@ export default function ChangePasswordPage() {
     resolver: zodResolver(changePasswordSchema),
   });
 
-  // Redirect to login if not authenticated
-  if (status === 'loading') {
-    return (
-      <div className="flex items-center justify-center p-8 min-h-full">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-black"></div>
-      </div>
-    );
-  }
-
-  if (status === 'unauthenticated') {
-    router.push('/auth/login');
-    return null;
-  }
-
   const onSubmit = async (data: ChangePasswordForm) => {
     setIsSubmitting(true);
     setError(null);
 
     try {
-      const response = await fetch('/api/auth/change-password', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-      });
-
-      const result = await response.json();
-
-      if (response.ok) {
-        setSuccess(true);
-        setTimeout(() => {
-          router.push('/app/home');
-        }, 2000);
-      } else {
-        setError(result.error || 'Failed to change password. Please try again.');
-      }
+      await apiClient.auth.changePassword(data);
+      setSuccess(true);
+      setTimeout(() => {
+        router.push('/app/home');
+      }, 2000);
     } catch (error) {
-      setError('Network error. Please check your connection and try again.');
+      if (error instanceof ApiError && error.status === 429) {
+        setError('Too many attempts. Please wait a few minutes before trying again.');
+      } else {
+        setError(error instanceof Error ? error.message : 'Network error. Please check your connection and try again.');
+      }
     } finally {
       setIsSubmitting(false);
     }

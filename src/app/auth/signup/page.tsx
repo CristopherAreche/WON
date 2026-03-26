@@ -4,9 +4,9 @@ import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
-import { signIn } from "next-auth/react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { apiClient } from "@/api/client";
 
 // Utility function to prevent emoji and number input in name fields
 const preventInvalidNameInput = (e: React.KeyboardEvent) => {
@@ -44,9 +44,9 @@ const SignupSchema = z.object({
     ),
   password: z
     .string()
-    .min(12, "Minimum 12 characters")
+    .min(10, "Minimum 10 characters")
     .refine(
-      (val) => /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>]).{12,}$/.test(val),
+      (val) => /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>]).{10,}$/.test(val),
       "Must include uppercase, lowercase, number, and special character"
     )
     .refine(
@@ -83,44 +83,32 @@ export default function SignupPage() {
 
   async function onSubmit(values: z.infer<typeof SignupSchema>) {
     setFieldErrors({});
-    const res = await fetch("/api/auth/signup", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(values),
-    });
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
+    try {
+      const data = await apiClient.auth.signUp({
+        name: values.name,
+        email: values.email,
+        password: values.password,
+      });
 
-      // Handle specific field errors
-      if (data?.error?.includes("email") || data?.error?.includes("Email")) {
-        setFieldErrors({ email: data.error });
-      } else if (data?.error?.includes("password") || data?.error?.includes("Password")) {
-        setFieldErrors({ password: data.error });
-      } else if (data?.error?.includes("name") || data?.error?.includes("Name")) {
-        setFieldErrors({ name: data.error });
+      if (data.securityToken) {
+        sessionStorage.setItem("won_security_token", data.securityToken);
+      }
+
+      router.push("/onboarding");
+      router.refresh();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Could not create account";
+
+      if (message.includes("email") || message.includes("Email")) {
+        setFieldErrors({ email: message });
+      } else if (message.includes("password") || message.includes("Password")) {
+        setFieldErrors({ password: message });
+      } else if (message.includes("name") || message.includes("Name")) {
+        setFieldErrors({ name: message });
       } else {
-        setFieldErrors({ general: data?.error ?? "Could not create account" });
+        setFieldErrors({ general: message });
       }
       return;
-    }
-
-    // Save security token to sessionStorage so onboarding can display it
-    const data = await res.json();
-    if (data.securityToken) {
-      sessionStorage.setItem("won_security_token", data.securityToken);
-    }
-
-    // Auto-login after signup
-    const result = await signIn("credentials", {
-      email: values.email,
-      password: values.password,
-      redirect: false,
-    });
-
-    if (result?.ok) {
-      router.push("/onboarding");
-    } else {
-      setFieldErrors({ general: "Account created but login failed. Please try logging in manually." });
     }
   }
 

@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { apiClient } from "@/api/client";
+import { ApiError } from "@/api/http";
 import SecurityTokenDisplay from "@/components/SecurityTokenDisplay";
 import DeleteAccountButton from "@/components/DeleteAccountButton";
 
@@ -222,26 +224,17 @@ export default function ProfileClient({
     setIsUploading(true);
     try {
       const imageDataUrl = await toSquareProfileImageDataUrl(file);
-      const response = await fetch("/api/user/profile-image", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ imageDataUrl }),
-      });
-
-      const result = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        throw new Error(getProfileImageErrorMessage(result.error));
-      }
+      await apiClient.user.updateProfileImage({ imageDataUrl });
 
       setAvatarSrc(imageDataUrl);
       setHasStoredPhoto(true);
       router.refresh();
     } catch (error) {
       const message =
-        error instanceof Error
-          ? error.message === "PAYLOAD_TOO_LARGE"
-            ? "Image is too large after processing. Try a different image."
-            : error.message
+        error instanceof ApiError
+          ? getProfileImageErrorMessage(error.code || error.message)
+          : error instanceof Error
+            ? error.message
           : "Could not update profile photo. Please try again.";
       setUploadError(message);
     } finally {
@@ -256,17 +249,18 @@ export default function ProfileClient({
     setUploadError(null);
     setIsUploading(true);
     try {
-      const response = await fetch("/api/user/profile-image", { method: "DELETE" });
-      const result = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        throw new Error(getProfileImageErrorMessage(result.error));
-      }
+      await apiClient.user.removeProfileImage();
 
       setAvatarSrc(fallbackAvatarUrl || null);
       setHasStoredPhoto(false);
       router.refresh();
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Could not remove profile photo.";
+      const message =
+        error instanceof ApiError
+          ? getProfileImageErrorMessage(error.code || error.message)
+          : error instanceof Error
+            ? error.message
+            : "Could not remove profile photo.";
       setUploadError(message);
     } finally {
       setIsUploading(false);
@@ -308,21 +302,12 @@ export default function ProfileClient({
 
     setIsSavingProfile(true);
     try {
-      const response = await fetch("/api/user/profile", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: normalizedName,
-          dateOfBirth: parsedDob.toISOString(),
-          weightKg: parsedWeight,
-          heightCm: parsedHeight,
-        }),
+      await apiClient.user.updateProfile({
+        name: normalizedName,
+        dateOfBirth: parsedDob.toISOString(),
+        weightKg: parsedWeight,
+        heightCm: parsedHeight,
       });
-
-      const result = await response.json().catch(() => ({}));
-      if (!response.ok || !result.ok) {
-        throw new Error("Could not update profile. Please try again.");
-      }
 
       setDisplayName(normalizedName);
       setDisplayDateOfBirth(profileForm.dateOfBirth);

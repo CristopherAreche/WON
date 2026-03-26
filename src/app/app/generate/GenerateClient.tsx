@@ -5,6 +5,7 @@ import { useForm, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { apiClient } from "@/api/client";
 
 const GenerateSchema = z.object({
   goal: z.enum(["fat_loss", "hypertrophy", "strength", "returning", "general_health"]),
@@ -92,22 +93,14 @@ export default function GenerateClient({ defaults }: GenerateClientProps) {
       setLoading(true);
       setLoadingStage("Generating your next training block...");
 
-      const response = await fetch("/api/ai/generate-plan", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          goal: formValues.goal,
-          daysPerWeek: formValues.daysPerWeek,
-          minutesPerSession: formValues.minutesPerSession,
-          equipment: formValues.equipment,
-          location: formValues.location,
-          injuries: formValues.injuries,
-        }),
+      await apiClient.plans.generate({
+        goal: formValues.goal,
+        daysPerWeek: formValues.daysPerWeek,
+        minutesPerSession: formValues.minutesPerSession,
+        equipment: formValues.equipment,
+        location: formValues.location,
+        injuries: formValues.injuries,
       });
-
-      if (!response.ok) {
-        throw new Error("Failed to generate plan");
-      }
 
       router.push("/app/home");
       router.refresh();

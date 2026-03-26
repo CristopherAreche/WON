@@ -1,50 +1,6 @@
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
-import { prisma } from "@/lib/db";
 import { redirect } from "next/navigation";
 import HomePageClient from "./HomePageClient";
-import { cache } from "react";
-
-// Cache the DB queries per request to avoid redundant calls during hydration/navigation
-const getUser = cache(async (email: string) => {
-  return await prisma.user.findUnique({
-    where: { email },
-    select: {
-      id: true,
-      name: true,
-      email: true,
-    },
-  });
-});
-
-const getWorkoutPlans = cache(async (userId: string) => {
-  return await prisma.workoutPlan.findMany({
-    where: { userId },
-    orderBy: { createdAt: "desc" },
-    take: 12,
-    select: {
-      id: true,
-      summary: true,
-      days: true,
-      createdAt: true,
-      onboarding: true,
-    },
-  });
-});
-
-const getOnboardingBase = cache(async (userId: string) => {
-  return await prisma.onboardingAnswers.findUnique({
-    where: { userId },
-    select: {
-      goal: true,
-      daysPerWeek: true,
-      minutesPerSession: true,
-      equipment: true,
-      location: true,
-      injuries: true,
-    },
-  });
-});
+import { fetchWonApiServerJson, type WonHomePayload } from "@/lib/won-api-server";
 
 interface PlanSummary {
   goal?: string;
@@ -114,33 +70,28 @@ interface OnboardingBase {
 }
 
 export default async function HomeApp() {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.email) redirect("/auth/login");
+  const home = await fetchWonApiServerJson<WonHomePayload>("/api/user/home");
 
-  const user = await getUser(session.user.email);
-  if (!user) redirect("/auth/login");
+  if (!home) {
+    redirect("/auth/login");
+  }
 
-  const [workoutPlans, onboardingBase] = await Promise.all([
-    getWorkoutPlans(user.id),
-    getOnboardingBase(user.id),
-  ]);
-
-  const plans: Plan[] = workoutPlans.map((workoutPlan) => ({
-    id: workoutPlan.id,
-    summary: workoutPlan.summary as PlanSummary,
-    days: workoutPlan.days as unknown as WorkoutPlanData,
-    createdAt: workoutPlan.createdAt,
-    onboarding: (workoutPlan.onboarding as OnboardingData | null) || undefined,
+  const plans: Plan[] = home.plans.map((plan) => ({
+    id: plan.id,
+    summary: plan.summary as PlanSummary,
+    days: plan.days as unknown as WorkoutPlanData,
+    createdAt: new Date(plan.createdAt),
+    onboarding: (plan.onboarding as OnboardingData | undefined) || undefined,
   }));
 
-  const onboardingDefaults: OnboardingBase | null = onboardingBase
+  const onboardingDefaults: OnboardingBase | null = home.onboardingBase
     ? {
-        goal: onboardingBase.goal,
-        daysPerWeek: onboardingBase.daysPerWeek,
-        minutesPerSession: onboardingBase.minutesPerSession,
-        equipment: onboardingBase.equipment as OnboardingBase["equipment"],
-        location: onboardingBase.location as OnboardingBase["location"],
-        injuries: onboardingBase.injuries,
+        goal: home.onboardingBase.goal,
+        daysPerWeek: home.onboardingBase.daysPerWeek,
+        minutesPerSession: home.onboardingBase.minutesPerSession,
+        equipment: home.onboardingBase.equipment,
+        location: home.onboardingBase.location[0] || "home",
+        injuries: home.onboardingBase.injuries,
       }
     : null;
 
