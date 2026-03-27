@@ -7,6 +7,8 @@ import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useState } from "react";
 import { ApiError } from "@/api/http";
+import GoogleAuthButton from "@/components/GoogleAuthButton";
+import { getAuthMessage } from "@/lib/auth-messages";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { bootstrapWonApiUser } from "@/lib/won-api-auth";
 
@@ -55,14 +57,7 @@ export default function LoginForm() {
       ? rawCallbackUrl
       : "/app/home";
   const message = search.get("message");
-  const infoMsg =
-    message === "password-reset-success"
-      ? "Password updated. You can sign in now."
-      : message === "check-email"
-        ? "Check your email to confirm your account before signing in."
-        : message === "link-account-error"
-          ? "We could not finish linking your WON account. Please sign in again."
-        : null;
+  const authMessage = getAuthMessage(message);
 
   const {
     register,
@@ -151,6 +146,19 @@ export default function LoginForm() {
           <p className="text-slate-500 text-sm">Please sign in to continue your journey</p>
         </div>
 
+        <div className="w-full space-y-4 mb-6">
+          <GoogleAuthButton
+            next={callbackUrl}
+            source="login"
+            onError={(message) => setErrorMsg(message)}
+          />
+          <div className="flex items-center gap-3 text-xs font-medium uppercase tracking-[0.24em] text-slate-400">
+            <span className="h-px flex-1 bg-slate-200" />
+            <span>or continue with email</span>
+            <span className="h-px flex-1 bg-slate-200" />
+          </div>
+        </div>
+
         <form onSubmit={handleSubmit(onSubmit)} className="w-full space-y-5">
           <div className="space-y-1">
             <label className="sr-only" htmlFor="email">Email</label>
@@ -204,9 +212,15 @@ export default function LoginForm() {
             </Link>
           </div>
 
-          {infoMsg && (
-            <div className="bg-blue-50 text-blue-700 px-4 py-3 rounded-xl text-sm text-center border border-blue-100 mt-2">
-              {infoMsg}
+          {authMessage && (
+            <div
+              className={`px-4 py-3 rounded-xl text-sm text-center border mt-2 ${
+                authMessage.tone === "info"
+                  ? "bg-blue-50 text-blue-700 border-blue-100"
+                  : "bg-red-50 text-red-600 border-red-100"
+              }`}
+            >
+              {authMessage.text}
             </div>
           )}
 

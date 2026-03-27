@@ -3,6 +3,8 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { bootstrapWonApiUser } from "@/lib/won-api-auth";
 import { WON_SECURITY_TOKEN_COOKIE } from "@/lib/security-token";
 
+type AuthSource = "login" | "signup";
+
 function getSafeNext(value: string | null) {
   if (!value || !value.startsWith("/") || value.startsWith("//")) {
     return "/app/home";
@@ -11,20 +13,44 @@ function getSafeNext(value: string | null) {
   return value;
 }
 
+function getSafeSource(value: string | null): AuthSource {
+  return value === "signup" ? "signup" : "login";
+}
+
+function buildReturnUrl(requestUrl: URL, source: AuthSource, next: string, message: string) {
+  const pathname = source === "signup" ? "/auth/signup" : "/auth/login";
+  const url = new URL(pathname, requestUrl.origin);
+  url.searchParams.set("message", message);
+
+  if (source === "login" && next !== "/app/home") {
+    url.searchParams.set("callbackUrl", next);
+  }
+
+  return url;
+}
+
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get("code");
   const next = getSafeNext(requestUrl.searchParams.get("next"));
+  const source = getSafeSource(requestUrl.searchParams.get("source"));
+  const providerError = requestUrl.searchParams.get("error");
+
+  if (providerError) {
+    const message = providerError === "access_denied" ? "google-auth-cancelled" : "google-auth-failed";
+    return NextResponse.redirect(buildReturnUrl(requestUrl, source, next, message));
+  }
 
   if (!code) {
-    return NextResponse.redirect(new URL("/auth/login", requestUrl.origin));
+    return NextResponse.redirect(buildReturnUrl(requestUrl, source, next, "missing-auth-code"));
   }
 
   const supabase = await createSupabaseServerClient();
   const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
 
   if (exchangeError) {
-    return NextResponse.redirect(new URL("/auth/login", requestUrl.origin));
+    await supabase.auth.signOut();
+    return NextResponse.redirect(buildReturnUrl(requestUrl, source, next, "google-auth-failed"));
   }
 
   const {
@@ -34,7 +60,7 @@ export async function GET(request: Request) {
   const accessToken = session?.access_token;
   if (!accessToken) {
     await supabase.auth.signOut();
-    return NextResponse.redirect(new URL("/auth/login", requestUrl.origin));
+    return NextResponse.redirect(buildReturnUrl(requestUrl, source, next, "missing-auth-code"));
   }
 
   try {
@@ -54,8 +80,6 @@ export async function GET(request: Request) {
     return response;
   } catch {
     await supabase.auth.signOut();
-    return NextResponse.redirect(
-      new URL("/auth/login?message=link-account-error", requestUrl.origin)
-    );
+    return NextResponse.redirect(buildReturnUrl(requestUrl, source, next, "link-account-error"));
   }
 }
