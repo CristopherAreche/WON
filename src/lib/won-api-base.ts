@@ -32,9 +32,11 @@ export function getWonApiConfigErrorDetails(error: unknown) {
 }
 
 export function getWonApiBaseUrl(requestUrl?: string) {
+  // Prefer the public API origin so browser and server-side auth flows
+  // resolve the same backend deployment.
   const configured =
-    process.env.WON_API_BASE_URL?.trim() ||
-    process.env.NEXT_PUBLIC_API_BASE_URL?.trim();
+    process.env.NEXT_PUBLIC_API_BASE_URL?.trim() ||
+    process.env.WON_API_BASE_URL?.trim();
 
   if (!configured) {
     throw new WonApiConfigError(
