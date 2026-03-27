@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { apiClient } from '@/api/client';
+import { getSupabaseBrowserClient } from '@/lib/supabase/browser';
 
 interface DeleteAccountButtonProps {
   userName: string;
@@ -57,6 +58,9 @@ export default function DeleteAccountButton({ userName }: DeleteAccountButtonPro
         name: nameInput,
         confirmationText: confirmationInput,
       });
+
+      const supabase = getSupabaseBrowserClient();
+      await supabase.auth.signOut();
 
       setShowConfirmModal(false);
       setShowSuccessModal(true);

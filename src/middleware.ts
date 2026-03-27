@@ -1,25 +1,27 @@
-import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
-import {
-  WON_ACCESS_TOKEN_COOKIE,
-  WON_REFRESH_TOKEN_COOKIE,
-} from "@/lib/session-constants";
+import { NextResponse, type NextRequest } from "next/server";
+import { updateSupabaseSession } from "@/lib/supabase/middleware";
 
-export default function middleware(request: NextRequest) {
-  const isProtectedRoute =
-    request.nextUrl.pathname.startsWith("/app") ||
-    request.nextUrl.pathname.startsWith("/onboarding");
+function isProtectedRoute(pathname: string) {
+  return pathname.startsWith("/app") || pathname.startsWith("/onboarding");
+}
 
-  if (!isProtectedRoute) {
-    return NextResponse.next();
+function isApiRoute(pathname: string) {
+  return pathname.startsWith("/api/");
+}
+
+export default async function middleware(request: NextRequest) {
+  const { response, user } = await updateSupabaseSession(request);
+
+  if (isApiRoute(request.nextUrl.pathname)) {
+    return response;
   }
 
-  const hasSession =
-    Boolean(request.cookies.get(WON_ACCESS_TOKEN_COOKIE)?.value) ||
-    Boolean(request.cookies.get(WON_REFRESH_TOKEN_COOKIE)?.value);
+  if (!isProtectedRoute(request.nextUrl.pathname)) {
+    return response;
+  }
 
-  if (hasSession) {
-    return NextResponse.next();
+  if (user) {
+    return response;
   }
 
   const url = new URL("/auth/login", request.nextUrl.origin);
@@ -28,5 +30,9 @@ export default function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/app/:path*", "/onboarding/:path*"],
+  matcher: [
+    "/app/:path*",
+    "/onboarding/:path*",
+    "/api/:path*",
+  ],
 };

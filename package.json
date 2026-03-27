@@ -13,6 +13,8 @@
     "dev:phone:cf": "bash ./scripts/dev-phone-cloudflare.sh"
   },
   "dependencies": {
+    "@supabase/ssr": "^0.7.0",
+    "@supabase/supabase-js": "^2.57.4",
     "@hookform/resolvers": "^5.2.2",
     "next": "15.5.9",
     "react": "19.1.0",

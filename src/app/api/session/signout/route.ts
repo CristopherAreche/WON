@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { clearWonApiSession } from "@/lib/won-api-session";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export async function POST() {
-  const response = NextResponse.json({ ok: true });
-  clearWonApiSession(response.cookies);
-  return response;
+  const supabase = await createSupabaseServerClient();
+  await supabase.auth.signOut();
+  return NextResponse.json({ ok: true });
 }

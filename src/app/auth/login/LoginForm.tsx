@@ -6,8 +6,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useState } from "react";
-import { apiClient } from "@/api/client";
 import { ApiError } from "@/api/http";
+import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
+import { bootstrapWonApiUser } from "@/lib/won-api-auth";
 
 // Utility function to prevent emoji input
 const preventEmojiInput = (e: React.KeyboardEvent) => {
@@ -53,6 +54,15 @@ export default function LoginForm() {
     !rawCallbackUrl.startsWith("//")
       ? rawCallbackUrl
       : "/app/home";
+  const message = search.get("message");
+  const infoMsg =
+    message === "password-reset-success"
+      ? "Password updated. You can sign in now."
+      : message === "check-email"
+        ? "Check your email to confirm your account before signing in."
+        : message === "link-account-error"
+          ? "We could not finish linking your WON account. Please sign in again."
+        : null;
 
   const {
     register,
@@ -64,12 +74,56 @@ export default function LoginForm() {
 
   async function onSubmit(values: z.infer<typeof LoginSchema>) {
     setErrorMsg(null);
+
     try {
-      await apiClient.auth.signIn(values);
+      const supabase = getSupabaseBrowserClient();
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: values.email.trim().toLowerCase(),
+        password: values.password,
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      const accessToken = data.session?.access_token;
+      if (!accessToken) {
+        throw new Error("SESSION_NOT_ESTABLISHED");
+      }
+
+      try {
+        await bootstrapWonApiUser(accessToken);
+      } catch (bootstrapError) {
+        await supabase.auth.signOut();
+        throw bootstrapError;
+      }
+
       router.push(callbackUrl);
       router.refresh();
     } catch (error) {
-      if (error instanceof ApiError && error.code === "INVALID_CREDENTIALS") {
+      if (error instanceof ApiError) {
+        setErrorMsg("We signed you in, but could not finish linking your WON account. Please try again.");
+        return;
+      }
+
+      if (
+        error &&
+        typeof error === "object" &&
+        "message" in error &&
+        typeof error.message === "string" &&
+        error.message.toLowerCase().includes("email not confirmed")
+      ) {
+        setErrorMsg("Confirm your email before signing in.");
+        return;
+      }
+
+      if (
+        error &&
+        typeof error === "object" &&
+        "message" in error &&
+        typeof error.message === "string" &&
+        error.message.toLowerCase().includes("invalid login credentials")
+      ) {
         setErrorMsg("Invalid email or password. Please try again.");
         return;
       }
@@ -144,11 +198,17 @@ export default function LoginForm() {
           <div className="flex justify-end pt-1">
             <Link
               className="text-sm font-medium text-slate-500 hover:text-primary transition-colors"
-              href="/auth/reset-password-token"
+              href="/auth/forgot-password"
             >
               Forgot Password?
             </Link>
           </div>
+
+          {infoMsg && (
+            <div className="bg-blue-50 text-blue-700 px-4 py-3 rounded-xl text-sm text-center border border-blue-100 mt-2">
+              {infoMsg}
+            </div>
+          )}
 
           {errorMsg && (
             <div className="bg-red-50 text-red-500 px-4 py-3 rounded-xl text-sm text-center border border-red-100 mt-2">

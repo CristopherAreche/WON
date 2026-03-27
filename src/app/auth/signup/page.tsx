@@ -6,7 +6,10 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { apiClient } from "@/api/client";
+import { ApiError } from "@/api/http";
+import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
+import { storeOneTimeSecurityToken } from "@/lib/security-token";
+import { bootstrapWonApiUser } from "@/lib/won-api-auth";
 
 // Utility function to prevent emoji and number input in name fields
 const preventInvalidNameInput = (e: React.KeyboardEvent) => {
@@ -84,19 +87,55 @@ export default function SignupPage() {
   async function onSubmit(values: z.infer<typeof SignupSchema>) {
     setFieldErrors({});
     try {
-      const data = await apiClient.auth.signUp({
-        name: values.name,
-        email: values.email,
+      const supabase = getSupabaseBrowserClient();
+      const normalizedName = values.name?.trim() || undefined;
+      const { data, error } = await supabase.auth.signUp({
+        email: values.email.trim().toLowerCase(),
         password: values.password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback?next=/onboarding`,
+          data: normalizedName
+            ? {
+                name: normalizedName,
+                full_name: normalizedName,
+              }
+            : undefined,
+        },
       });
 
-      if (data.securityToken) {
-        sessionStorage.setItem("won_security_token", data.securityToken);
+      if (error) {
+        throw error;
+      }
+
+      const accessToken = data.session?.access_token;
+      if (!accessToken) {
+        router.push("/auth/login?message=check-email");
+        router.refresh();
+        return;
+      }
+
+      let bootstrap;
+      try {
+        bootstrap = await bootstrapWonApiUser(accessToken, { name: normalizedName });
+      } catch (bootstrapError) {
+        await supabase.auth.signOut();
+        throw bootstrapError;
+      }
+
+      if (bootstrap.securityToken) {
+        storeOneTimeSecurityToken(bootstrap.securityToken);
       }
 
       router.push("/onboarding");
       router.refresh();
     } catch (error) {
+      if (error instanceof ApiError) {
+        setFieldErrors({
+          general: "Your account was created in Supabase, but WON could not finish setup. Please sign in and try again.",
+        });
+        return;
+      }
+
       const message = error instanceof Error ? error.message : "Could not create account";
 
       if (message.includes("email") || message.includes("Email")) {

@@ -6,7 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { apiClient } from '@/api/client';
+import { getSupabaseBrowserClient } from '@/lib/supabase/browser';
 
 // Utility function to prevent emoji input
 const preventEmojiInput = (e: React.KeyboardEvent) => {
@@ -48,7 +48,15 @@ export default function ForgotPasswordPage() {
     setError(null);
 
     try {
-      await apiClient.auth.forgotPassword(data);
+      const supabase = getSupabaseBrowserClient();
+      const { error } = await supabase.auth.resetPasswordForEmail(data.email.trim().toLowerCase(), {
+        redirectTo: `${window.location.origin}/auth/callback?next=/reset-password`,
+      });
+
+      if (error) {
+        throw error;
+      }
+
       setIsSubmitted(true);
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Network error. Please check your connection and try again.');
@@ -81,20 +89,20 @@ export default function ForgotPasswordPage() {
             <div className="rounded-lg bg-blue-50 p-4">
               <div className="text-sm text-blue-700">
                 <p className="mb-2">
-                  If the email exists in our system, you&apos;ll receive a message with a 6-digit code and a reset link.
+                  If the email exists in our system, you&apos;ll receive a password recovery link.
                 </p>
                 <p>
-                  The code will expire in <strong>10 minutes</strong>.
+                  Open the link from your email on this device to choose a new password.
                 </p>
               </div>
             </div>
 
             <div className="space-y-3">
               <button
-                onClick={() => router.push(`/verify-reset-code?email=${encodeURIComponent(getValues('email'))}`)}
+                onClick={() => router.push('/auth/login')}
                 className="w-full bg-black text-white py-3 rounded-lg hover:bg-gray-800 transition-colors"
               >
-                I have the code
+                Back to sign in
               </button>
 
               <button
@@ -127,7 +135,7 @@ export default function ForgotPasswordPage() {
             Forgot your password?
           </h1>
           <p className="text-center text-sm text-gray-600 mb-6">
-            Enter your email address and we&apos;ll send you a reset code.
+            Enter your email address and we&apos;ll send you a recovery link.
           </p>
 
           <div>
@@ -164,7 +172,7 @@ export default function ForgotPasswordPage() {
             disabled={isSubmitting}
             className="w-full bg-black text-white py-3 rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-60"
           >
-            {isSubmitting ? 'Sending...' : 'Send reset code'}
+            {isSubmitting ? 'Sending...' : 'Send recovery email'}
           </button>
 
           <div className="text-center">

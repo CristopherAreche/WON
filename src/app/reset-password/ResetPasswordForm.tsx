@@ -1,56 +1,59 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { apiClient } from '@/api/client';
-import { ApiError } from '@/api/http';
+import { useRouter } from 'next/navigation';
+import { getSupabaseBrowserClient } from '@/lib/supabase/browser';
 
-// Utility function to prevent emoji input
 const preventEmojiInput = (e: React.KeyboardEvent) => {
-  const emojiRegex = /[\u{1F600}-\u{1F64F}]|[\u{1F300}-\u{1F5FF}]|[\u{1F680}-\u{1F6FF}]|[\u{1F1E0}-\u{1F1FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/u;
+  const emojiRegex =
+    /[\u{1F600}-\u{1F64F}]|[\u{1F300}-\u{1F5FF}]|[\u{1F680}-\u{1F6FF}]|[\u{1F1E0}-\u{1F1FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/u;
   if (emojiRegex.test(e.key)) {
     e.preventDefault();
   }
 };
 
-const resetPasswordSchema = z.object({
-  newPassword: z
-    .string()
-    .min(10, 'Password must be at least 10 characters')
-    .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
-    .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
-    .regex(/\d/, 'Password must contain at least one number')
-    .regex(/[^A-Za-z0-9]/, 'Password must contain at least one symbol')
-    .refine(
-      (val) => !/[\u{1F600}-\u{1F64F}]|[\u{1F300}-\u{1F5FF}]|[\u{1F680}-\u{1F6FF}]|[\u{1F1E0}-\u{1F1FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/u.test(val),
-      "Emojis are not allowed"
-    ),
-  confirmPassword: z.string(),
-}).refine((data) => data.newPassword === data.confirmPassword, {
-  message: "Passwords don't match",
-  path: ['confirmPassword'],
-});
+const resetPasswordSchema = z
+  .object({
+    newPassword: z
+      .string()
+      .min(10, 'Password must be at least 10 characters')
+      .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
+      .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
+      .regex(/\d/, 'Password must contain at least one number')
+      .regex(/[^A-Za-z0-9]/, 'Password must contain at least one symbol')
+      .refine(
+        (val) =>
+          !/[\u{1F600}-\u{1F64F}]|[\u{1F300}-\u{1F5FF}]|[\u{1F680}-\u{1F6FF}]|[\u{1F1E0}-\u{1F1FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/u.test(
+            val
+          ),
+        'Emojis are not allowed'
+      ),
+    confirmPassword: z.string(),
+  })
+  .refine((data) => data.newPassword === data.confirmPassword, {
+    message: "Passwords don't match",
+    path: ['confirmPassword'],
+  });
 
 type ResetPasswordForm = z.infer<typeof resetPasswordSchema>;
 
 export default function ResetPasswordForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isCheckingSession, setIsCheckingSession] = useState(true);
+  const [isRecoveryReady, setIsRecoveryReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [token, setToken] = useState<string>('');
-  const [code, setCode] = useState<string>('');
   const [passwordStrength, setPasswordStrength] = useState<{
     score: number;
     feedback: string[];
   }>({ score: 0, feedback: [] });
 
   const router = useRouter();
-  const searchParams = useSearchParams();
 
   const {
     register,
@@ -61,22 +64,45 @@ export default function ResetPasswordForm() {
     resolver: zodResolver(resetPasswordSchema),
   });
 
-  // Extract token and code from URL parameters
   useEffect(() => {
-    const tokenParam = searchParams.get('token');
-    const codeParam = searchParams.get('code');
-    
-    if (!tokenParam || !codeParam) {
-      setError('Missing reset token or code. Please request a new password reset.');
-      return;
-    }
-    
-    setToken(tokenParam);
-    setCode(codeParam);
-  }, [searchParams]);
+    let active = true;
 
-  // Password strength indicator
+    async function validateRecoverySession() {
+      const supabase = getSupabaseBrowserClient();
+      const {
+        data: { session },
+        error: sessionError,
+      } = await supabase.auth.getSession();
+
+      if (!active) {
+        return;
+      }
+
+      if (sessionError) {
+        setError(sessionError.message);
+        setIsCheckingSession(false);
+        return;
+      }
+
+      if (!session) {
+        setError('This password recovery link is invalid or has expired.');
+        setIsCheckingSession(false);
+        return;
+      }
+
+      setIsRecoveryReady(true);
+      setIsCheckingSession(false);
+    }
+
+    void validateRecoverySession();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
   const newPassword = watch('newPassword');
+
   useEffect(() => {
     if (!newPassword) {
       setPasswordStrength({ score: 0, feedback: [] });
@@ -105,8 +131,8 @@ export default function ResetPasswordForm() {
   }, [newPassword]);
 
   const onSubmit = async (data: ResetPasswordForm) => {
-    if (!token || !code) {
-      setError('Missing reset token or code');
+    if (!isRecoveryReady) {
+      setError('This password recovery link is invalid or has expired.');
       return;
     }
 
@@ -114,41 +140,68 @@ export default function ResetPasswordForm() {
     setError(null);
 
     try {
-      await apiClient.auth.resetPassword({
-        token,
-        code,
-        newPassword: data.newPassword,
+      const supabase = getSupabaseBrowserClient();
+      const { error: updateError } = await supabase.auth.updateUser({
+        password: data.newPassword,
       });
 
-      router.push('/auth/login?message=password-reset-success');
-    } catch (error) {
-      if (error instanceof ApiError && error.status === 429) {
-        setError('Too many reset attempts. Please wait 15 minutes before trying again.');
-      } else {
-        setError(error instanceof Error ? error.message : 'Network error. Please check your connection and try again.');
+      if (updateError) {
+        throw updateError;
       }
+
+      await supabase.auth.signOut();
+      router.push('/auth/login?message=password-reset-success');
+      router.refresh();
+    } catch (submitError) {
+      setError(
+        submitError instanceof Error
+          ? submitError.message
+          : 'Network error. Please check your connection and try again.'
+      );
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // If no token or code, show error
-  if (!token || !code) {
+  if (isCheckingSession) {
+    return (
+      <div className="flex items-center justify-center p-8 min-h-full">
+        <div className="bg-white rounded-2xl p-8 w-full max-w-md shadow-lg">
+          <div className="space-y-4">
+            <h1 className="text-2xl font-semibold text-black mb-6 text-center">
+              Reset Your Password
+            </h1>
+            <div className="animate-pulse">
+              <div className="space-y-4">
+                <div className="h-4 bg-gray-200 rounded w-1/3"></div>
+                <div className="h-10 bg-gray-200 rounded"></div>
+                <div className="h-4 bg-gray-200 rounded w-1/3"></div>
+                <div className="h-10 bg-gray-200 rounded"></div>
+                <div className="h-10 bg-gray-200 rounded"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isRecoveryReady) {
     return (
       <div className="flex items-center justify-center p-8 min-h-full">
         <div className="bg-white rounded-2xl p-8 w-full max-w-md shadow-lg">
           <div className="space-y-4 text-center">
             <h1 className="text-2xl font-semibold text-black mb-6">
-              Invalid Reset Link
+              Invalid Recovery Link
             </h1>
             <p className="text-gray-600">
-              This password reset link is invalid or has expired.
+              {error || 'This password recovery link is invalid or has expired.'}
             </p>
             <Link
               href="/auth/forgot-password"
               className="inline-block bg-black text-white px-6 py-3 rounded-lg hover:bg-gray-800 transition-colors"
             >
-              Request New Reset Link
+              Request New Recovery Email
             </Link>
           </div>
         </div>
@@ -182,16 +235,13 @@ export default function ResetPasswordForm() {
                 className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
                 onClick={() => setShowPassword(!showPassword)}
               >
-                {showPassword ? '👁️' : '🙈'}
+                {showPassword ? 'Hide' : 'Show'}
               </button>
             </div>
             {errors.newPassword && (
-              <p className="text-sm text-red-600 mt-1">
-                {errors.newPassword.message}
-              </p>
+              <p className="text-sm text-red-600 mt-1">{errors.newPassword.message}</p>
             )}
-            
-            {/* Password strength indicator */}
+
             {newPassword && (
               <div className="mt-2">
                 <div className="flex gap-1 mb-2">
@@ -203,8 +253,8 @@ export default function ResetPasswordForm() {
                           ? passwordStrength.score === 5
                             ? 'bg-green-500'
                             : passwordStrength.score >= 3
-                            ? 'bg-yellow-500'
-                            : 'bg-red-500'
+                              ? 'bg-yellow-500'
+                              : 'bg-red-500'
                           : 'bg-gray-200'
                       }`}
                     />
@@ -237,13 +287,11 @@ export default function ResetPasswordForm() {
                 className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
               >
-                {showConfirmPassword ? '👁️' : '🙈'}
+                {showConfirmPassword ? 'Hide' : 'Show'}
               </button>
             </div>
             {errors.confirmPassword && (
-              <p className="text-sm text-red-600 mt-1">
-                {errors.confirmPassword.message}
-              </p>
+              <p className="text-sm text-red-600 mt-1">{errors.confirmPassword.message}</p>
             )}
           </div>
 

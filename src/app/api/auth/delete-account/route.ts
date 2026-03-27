@@ -1,31 +1,38 @@
 export const runtime = "nodejs";
 
-import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import {
-  clearWonApiSession,
-  readWonApiSession,
   requestWonApiWithSession,
 } from "@/lib/won-api-session";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getWonApiConfigErrorDetails } from "@/lib/won-api-base";
 
 export async function POST(request: Request) {
-  const cookieStore = await cookies();
-  const session = readWonApiSession(cookieStore);
-  const result = await requestWonApiWithSession("/api/auth/delete-account", {
-    method: "POST",
-    body: await request.text(),
-    headers: request.headers,
-    session,
-  });
+  let result;
 
-  const response = NextResponse.json(
+  try {
+    result = await requestWonApiWithSession("/api/auth/delete-account", {
+      method: "DELETE",
+      body: await request.text(),
+      headers: request.headers,
+      requestUrl: request.url,
+    });
+  } catch (error) {
+    const configError = getWonApiConfigErrorDetails(error);
+    if (configError) {
+      return NextResponse.json(configError.body, { status: configError.status });
+    }
+
+    throw error;
+  }
+
+  if (result.response.ok) {
+    const supabase = await createSupabaseServerClient();
+    await supabase.auth.signOut();
+  }
+
+  return NextResponse.json(
     result.data ?? (result.response.ok ? { ok: true } : { error: "DELETE_ACCOUNT_FAILED" }),
     { status: result.response.status }
   );
-
-  if (result.response.ok || result.shouldClearSession) {
-    clearWonApiSession(response.cookies);
-  }
-
-  return response;
 }

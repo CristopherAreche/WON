@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
 import {
-  getWonApiSessionFromCookies,
   requestWonApiWithSession,
 } from "@/lib/won-api-session";
 
@@ -77,13 +76,7 @@ function getErrorMessage(path: string, payload: unknown) {
 }
 
 export async function fetchWonApiServerJson<T>(path: string) {
-  const session = await getWonApiSessionFromCookies();
-
-  if (!session) {
-    return null;
-  }
-
-  const result = await requestWonApiWithSession(path, { session });
+  const result = await requestWonApiWithSession(path, {});
 
   if (result.response.status === 401) {
     return null;

@@ -1,6 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import {
+  clearOneTimeSecurityToken,
+  readOneTimeSecurityToken,
+} from "@/lib/security-token";
 
 export default function SecurityTokenBanner() {
   const [token, setToken] = useState<string | null>(null);
@@ -9,7 +13,7 @@ export default function SecurityTokenBanner() {
   const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
-    const stored = sessionStorage.getItem("won_security_token");
+    const stored = readOneTimeSecurityToken();
     if (stored) {
       setToken(stored);
     }
@@ -27,7 +31,7 @@ export default function SecurityTokenBanner() {
   };
 
   const handleDismiss = () => {
-    sessionStorage.removeItem("won_security_token");
+    clearOneTimeSecurityToken();
     setDismissed(true);
   };
 
