@@ -3,11 +3,11 @@ import SignupForm from "./SignupForm";
 
 function SignupLoading() {
   return (
-    <div className="relative flex min-h-screen w-full max-w-md flex-col justify-center overflow-hidden bg-white font-display shadow-2xl mx-auto">
+    <div className="relative flex min-h-dvh w-full max-w-none flex-col justify-center overflow-hidden bg-white font-display  mx-auto">
       <div className="pointer-events-none absolute top-[-15%] right-[-15%] h-[40%] w-[70%] rounded-full bg-accent-mint/60 blur-[80px] opacity-80" />
       <div className="pointer-events-none absolute bottom-[-10%] left-[-20%] h-[40%] w-[80%] rounded-full bg-lavender-start/20 blur-[90px]" />
 
-      <div className="relative z-10 mx-auto flex w-full max-w-sm flex-col items-center px-8 animate-pulse">
+      <div className="relative z-10 mx-auto flex w-full max-w-lg flex-col items-center px-8 animate-pulse">
         <div className="mb-10 flex flex-col items-center gap-3">
           <div className="h-12 w-20 rounded bg-slate-200" />
           <div className="h-8 w-52 rounded bg-slate-200" />

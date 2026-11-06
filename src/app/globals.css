@@ -41,3 +41,31 @@ body {
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }
 }
+
+@layer base {
+  *, *::before, *::after { box-sizing: border-box; }
+  body { margin: 0; overflow-wrap: break-word; }
+  button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
+  input, select, textarea { font-size: 16px; }
+  :focus-visible { outline: 3px solid #1A56DB; outline-offset: 4px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; scroll-behavior: auto !important; transition: none !important; }
+}
+
+.material-symbols-outlined, .material-icons-round {
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-feature-settings: 'liga';
+  -webkit-font-smoothing: antialiased;
+}
+.material-symbols-outlined { font-family: 'Material Symbols Outlined'; }
+.material-icons-round { font-family: 'Material Icons Round'; }

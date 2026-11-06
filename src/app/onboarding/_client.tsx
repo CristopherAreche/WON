@@ -209,7 +209,7 @@ export default function OnboardingClient({
         </div>
       </div>
 
-      <main className="flex-1 px-6 flex flex-col space-y-8 max-w-md mx-auto w-full animate-fade-in">
+      <main className="flex-1 px-6 flex flex-col space-y-8 max-w-2xl mx-auto w-full animate-fade-in">
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
           {step === 1 && (
             <div className="space-y-6 animate-fade-in-up">

@@ -1,157 +1,59 @@
-# WON - Workout Onboarding API
+# WON — Workout planning for web
 
-## Generate Workout Button Flow
+WON is a personal project for creating workout plans around training goals, experience, available equipment, and weekly schedules. This repository contains the Next.js web client; `won-api` contains the shared Hono API and `won-mobile` contains the Expo / React Native client. They are complementary applications, not competing versions.
 
-When the "Generate Workout" button is clicked in the onboarding section, the application makes two sequential POST requests:
+## Explore without an account
 
-### 1. Save Onboarding Data
-**Endpoint:** `POST /api/onboarding`
+The public `/demo` route uses a fixed, clearly labeled example week. Visitors can switch between sessions, mark exercises complete, view the weekly completion percentage, and reset the demo. Demo interactions stay in browser memory and make no API calls. The example is not a personalized or AI-generated recommendation.
 
-```json
-{
-  "userId": "user_123",
-  "goal": "fat_loss",
-  "experience": "beginner",
-  "daysPerWeek": 3,
-  "minutesPerSession": 60,
-  "equipment": ["bodyweight", "dumbbells"],
-  "injuries": "Lower back pain when bending",
-  "location": "home"
-}
+Real account and workout flows remain separate: Supabase authentication, onboarding, plan generation through the API, saved workouts, and profile management.
+
+## Stack
+
+Next.js 15 · React 19 · TypeScript · Tailwind CSS · React Hook Form · Zod · Supabase Auth
+
+## Run locally
+
+Use Node.js 22 or later.
+
+```sh
+npm ci
+cp .env.example .env.local
+npm run dev -- --port 3002
 ```
 
-### 2. Generate AI Workout Plan
-**Endpoint:** `POST /api/ai/generate-plan`
+Open `http://localhost:3002` or `http://localhost:3002/demo`.
 
-```json
-{
-  "userId": "user_123"
-}
+Landing and demo pages do not need API access. Authentication requires a configured Supabase project; account linking, onboarding, and saved plans also require the separate `won-api` service.
+
+Required configuration for real account flows:
+
+- `NEXT_PUBLIC_SUPABASE_URL`: Supabase project URL.
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`: public Supabase client key.
+- `NEXT_PUBLIC_API_BASE_URL`: browser-accessible `won-api` URL.
+- `WON_API_BASE_URL`: server-side `won-api` URL. Keep it aligned with the public API origin.
+
+For local API development, run `won-api` separately on port 4000 and allow the web origin in its CORS configuration. Never point the API base URL back to this Next.js app. Never place a service-role key or AI provider key in a `NEXT_PUBLIC_` variable.
+
+## Validation
+
+```sh
+npx tsc --noEmit
+npm run build
 ```
 
-## Field Definitions
+Check the landing, demo, sign-in, and sign-up screens at mobile, tablet, and desktop widths. In the demo, marking one of nine exercises should display 11%; switching sessions should preserve the current page's progress; reset should return to Monday and 0%.
 
-### Goal Options
-- `"fat_loss"` - Fat Loss
-- `"hypertrophy"` - Muscle Growth
-- `"strength"` - Strength
-- `"returning"` - Return to Training
-- `"general_health"` - General Health
+Authenticated routes require a real test session and a reachable backend to validate end to end. A successful frontend build does not verify database connectivity, OAuth redirect settings, email delivery, or AI plan generation.
 
-### Experience Options
-- `"beginner"` - Beginner
-- `"three_to_twelve_months"` - 3–12 months
-- `"one_to_three_years"` - 1–3 years
-- `"three_years_plus"` - 3+ years
+## Deployment
 
-### Equipment Options
-- `"bodyweight"` - Bodyweight
-- `"bands"` - Resistance Bands
-- `"dumbbells"` - Dumbbells
-- `"barbell"` - Barbell
-- `"machines"` - Machines
+The existing Vercel project is `won`; the separate backend project is `won-api`. Reuse those projects rather than creating duplicate deployments.
 
-### Location Options
-- `"home"` - Home
-- `"gym"` - Gym
+- The frontend build command is `next build`, also declared in `vercel.json`. It does not run Prisma migrations or generate a Prisma client; Prisma belongs to the API.
+- Set frontend environment variables for the target environment to the deployed API and Supabase project, not localhost.
+- Add the final frontend origin to the API CORS configuration and Supabase allowed redirect URLs.
+- Keep backend database, email, AI, and service-role credentials in the API project.
+- Verify public access to `/` and `/demo` in a signed-out browser. Verify sign-up, sign-in, account linking, onboarding, and plan generation separately before describing those flows as production-ready.
 
-### Constraints
-- `daysPerWeek`: Integer between 1-7
-- `minutesPerSession`: Integer between 30-180 (increments of 15)
-- `equipment`: Array with at least one item
-- `injuries`: Optional string, max 500 characters, no emojis
-- `userId`: Required string identifier
-
-## Example Complete Request
-
-```json
-{
-  "userId": "clx123abc456def",
-  "goal": "hypertrophy",
-  "experience": "one_to_three_years",
-  "daysPerWeek": 4,
-  "minutesPerSession": 75,
-  "equipment": ["dumbbells", "barbell", "machines"],
-  "injuries": "Previous knee injury, avoid deep squats",
-  "location": "gym"
-}
-```
-
-## Expected Response Structure (English)
-
-The AI will generate workout plans in English with this structure:
-
-```json
-{
-  "description": "This is a FBx4 program designed for muscle growth, adapted for gym training with dumbbells, barbell, machines. Each session includes compound movements and progressive overload within 75 minutes per session.",
-  "split": "FBx4",
-  "sessions": [
-    {
-      "dayOfWeek": 1,
-      "title": "Upper Body Strength (Gym)",
-      "estMinutes": 70,
-      "items": [
-        {
-          "name": "Barbell Bench Press",
-          "equipment": "barbell",
-          "sets": 4,
-          "reps": [8,8,6,6],
-          "notes": "Control the descent, full range of motion.",
-          "reference": "https://www.youtube.com/watch?v=VIDEO_ID"
-        }
-      ]
-    }
-  ],
-  "constraints": {
-    "minutesPerSession": 75,
-    "injuryNotes": "Previous knee injury, avoid deep squats"
-  },
-  "meta": {
-    "goal": "hypertrophy",
-    "experience": "one_to_three_years",
-    "location": "gym",
-    "equipment": ["dumbbells", "barbell", "machines"]
-  }
-}
-```
-
----
-
-## Development Setup
-
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
-
-### Getting Started
-
-First, run the development server:
-
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Inter](https://fonts.google.com/specimen/Inter), a font optimized for user interfaces.
-
-### Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-### Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+No database migration is needed for responsive layouts or the public demo.

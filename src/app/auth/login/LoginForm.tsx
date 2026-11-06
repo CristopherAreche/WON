@@ -128,12 +128,12 @@ export default function LoginForm() {
   }
 
   return (
-    <div className="relative flex min-h-screen w-full flex-col max-w-md mx-auto shadow-2xl overflow-hidden bg-[#F9FAFB] justify-center font-display text-slate-900">
+    <div className="relative flex min-h-dvh w-full flex-col max-w-none mx-auto  overflow-hidden bg-[#F9FAFB] justify-center font-display text-slate-900">
       {/* Background Blurs */}
       <div className="absolute top-[-10%] right-[-10%] w-[70%] h-[40%] bg-accent-periwinkle/60 rounded-full blur-[80px] pointer-events-none opacity-80"></div>
       <div className="absolute bottom-[-10%] left-[-20%] w-[60%] h-[40%] bg-accent-seafoam/40 rounded-full blur-[70px] pointer-events-none opacity-50"></div>
 
-      <div className="relative z-10 w-full px-8 flex flex-col items-center">
+      <div className="relative z-10 mx-auto w-full max-w-lg px-5 py-10 sm:px-8 flex flex-col items-center">
         <div className="mb-12 flex flex-col items-center gap-3">
           <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center shadow-sm">
             <span className="material-symbols-outlined text-primary text-4xl">fitness_center</span>
@@ -191,6 +191,7 @@ export default function LoginForm() {
               <button
                 type="button"
                 className="absolute right-4 text-slate-400 hover:text-slate-600 focus:outline-none transition-colors"
+                aria-label={showPassword ? "Hide password" : "Show password"}
                 onClick={() => setShowPassword(!showPassword)}
               >
                 <span className="material-symbols-outlined text-[20px]">

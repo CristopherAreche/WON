@@ -94,7 +94,6 @@ export default function WorkoutsPageClient({ plans: initialPlans }: WorkoutsPage
     };
   }, []);
 
-  const shouldScrollList = plans.length > 2;
 
   return (
     <div className="h-full min-h-0 flex flex-col">
@@ -110,11 +109,9 @@ export default function WorkoutsPageClient({ plans: initialPlans }: WorkoutsPage
       {plans.length > 0 ? (
         <section className="flex-1 min-h-0 mt-2 rounded-2xl bg-slate-50/60 border border-slate-200/60 shadow-sm">
           <main
-            className={`h-full px-3 pt-3 pb-32 ${
-              shouldScrollList ? "overflow-y-auto" : "overflow-visible"
-            }`}
+            className="px-3 py-3"
           >
-            <div className="grid grid-cols-1 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {plans.map((plan) => (
                 <WorkoutList
                   key={plan.id}

@@ -36,11 +36,11 @@ export default function GlobalAppHeader({
   };
 
   return (
-    <header className="safe-top px-4 py-4 flex items-center justify-between w-full relative z-10 transition-all duration-300">
+    <header className="safe-top mx-auto max-w-6xl gap-3 px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between w-full relative z-10 transition-all duration-300">
       {isHome ? (
         // Home Variant
         <>
-          <div className="flex items-center gap-4">
+          <div className="flex min-w-0 items-center gap-3">
             <div className="h-14 w-14 rounded-full border-2 border-slate-200 p-0.5">
               <div className="h-full w-full rounded-full bg-primary flex items-center justify-center text-white text-xl font-bold shadow-sm overflow-hidden">
                 {avatarSrc ? (
@@ -52,7 +52,7 @@ export default function GlobalAppHeader({
             </div>
             <div>
               <p className="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-0.5">Welcome back</p>
-              <p className="text-xl font-bold text-slate-900 font-sans">
+              <p className="truncate text-xl font-bold text-slate-900 font-sans">
                 {userName ? userName.split(' ')[0] : 'Coach'}
               </p>
             </div>
@@ -71,6 +71,7 @@ export default function GlobalAppHeader({
         <>
           {/* Back Button */}
           <button
+            aria-label="Go back"
             onClick={() => router.back()}
             className="w-11 h-11 flex items-center justify-center rounded-full bg-white shadow-sm hover:shadow-md transition-shadow text-slate-600 relative z-20"
           >
@@ -78,7 +79,7 @@ export default function GlobalAppHeader({
           </button>
 
           {/* Center Title */}
-          <h2 className="text-xl font-bold text-slate-900 absolute left-1/2 transform -translate-x-1/2 z-10 w-full text-center pointer-events-none">
+          <h2 className="text-xl font-bold text-slate-900 absolute left-1/2 transform -translate-x-1/2 z-10 w-[calc(100%-8rem)] text-center pointer-events-none">
             {getPageTitle(pathname)}
           </h2>
 

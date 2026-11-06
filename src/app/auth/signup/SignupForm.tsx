@@ -172,7 +172,7 @@ export default function SignupForm() {
   }
 
   return (
-    <div className="relative flex h-full min-h-screen w-full max-w-md flex-col overflow-hidden bg-white font-display text-slate-900 shadow-2xl mx-auto">
+    <div className="relative flex h-full min-h-dvh w-full max-w-none flex-col overflow-hidden bg-white font-display text-slate-900  mx-auto">
       <div className="pointer-events-none absolute top-[-15%] right-[-15%] h-[40%] w-[70%] rounded-full bg-accent-mint/60 blur-[80px] opacity-80" />
       <div className="pointer-events-none absolute bottom-[-10%] left-[-20%] h-[40%] w-[80%] rounded-full bg-lavender-start/20 blur-[90px]" />
 
@@ -190,7 +190,7 @@ export default function SignupForm() {
         </div>
       </header>
 
-      <main className="relative z-10 mx-auto flex max-w-sm flex-1 flex-col justify-center px-8 w-full">
+      <main className="relative z-10 mx-auto flex max-w-lg flex-1 flex-col justify-center px-5 py-8 sm:px-8 w-full">
         <div className="mb-10 text-center">
           <h1 className="mb-3 text-[32px] font-semibold tracking-tight text-slate-900">
             Create Account

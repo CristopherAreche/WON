@@ -1,125 +1,47 @@
-// src/app/page.tsx
 import Link from "next/link";
+
+const features = [
+  { title: "A plan that fits your week", text: "Choose your goal, training experience, available days, and session length." },
+  { title: "Train with what you have", text: "Set your equipment and training location before generating a workout plan." },
+  { title: "Keep track of your work", text: "Review your sessions and mark exercises complete as you train." },
+];
 
 export default function Landing() {
   return (
-    <div className="relative flex min-h-full w-full flex-col max-w-md mx-auto shadow-2xl overflow-hidden bg-white font-display">
-      {/* Background Blurs */}
-      <div className="absolute top-[-10%] left-[-20%] w-[80%] h-[50%] bg-accent-periwinkle/60 rounded-full blur-[80px] pointer-events-none opacity-60"></div>
-      <div className="absolute top-[20%] right-[-10%] w-[60%] h-[40%] bg-accent-lemon/70 rounded-full blur-[60px] pointer-events-none opacity-50"></div>
-
-      {/* Internal Navigation Header */}
-      <header className="relative z-10 flex items-center justify-between px-6 pt-6 pb-2">
-        <div className="flex items-center gap-2">
-          <span className="material-symbols-outlined text-slate-900">fitness_center</span>
-          <h2 className="text-slate-900 text-xl font-bold tracking-tight">WON</h2>
-        </div>
-        <Link
-          href="/auth/login"
-          className="bg-primary hover:bg-blue-700 text-white font-medium px-5 py-2 rounded-full shadow-sm text-sm transition-colors"
-        >
-          Login
-        </Link>
+    <div className="min-h-dvh bg-background-light text-slate-900">
+      <header className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-5 py-6 sm:px-8">
+        <Link href="/" aria-label="WON home" className="flex items-center gap-2 text-xl font-bold"><span aria-hidden="true" className="material-symbols-outlined text-primary">fitness_center</span>WON</Link>
+        <Link href="/auth/login" className="rounded-full border border-slate-300 px-5 py-2.5 text-sm font-semibold hover:bg-white">Sign in</Link>
       </header>
-
-      <main className="flex-1 flex flex-col relative z-10 w-full">
-        <div className="flex flex-col items-center justify-center px-6 pt-8 pb-8 text-center">
-          <h1 className="text-slate-900 text-[34px] font-light leading-[1.15] tracking-tight mb-8">
-            Your body, <br />
-            <span className="font-bold text-transparent bg-clip-text bg-gradient-to-r from-primary to-indigo-400">engineered by AI.</span>
-          </h1>
-
-          {/* Floating Card UI */}
-          <div className="animate-float relative w-full aspect-[4/5] max-h-[380px] rounded-2xl overflow-hidden shadow-glass backdrop-blur-md border border-white/40 bg-white/30 flex flex-col p-1">
-            <div className="flex-1 rounded-[1.25rem] bg-white/40 relative overflow-hidden flex flex-col justify-between p-6 group">
-              <div className="absolute inset-0 z-0">
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[200%] h-[200%] bg-[conic-gradient(at_center,_var(--tw-gradient-stops))] from-accent-periwinkle via-white to-accent-seafoam opacity-60 blur-xl"></div>
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 rounded-full border-[12px] border-white/60 shadow-lg flex items-center justify-center">
-                  <div className="w-32 h-32 rounded-full border-[8px] border-primary/20 flex items-center justify-center animate-pulse">
-                    <span className="material-symbols-outlined text-primary text-4xl">fitness_center</span>
-                  </div>
-                </div>
-              </div>
-              <div className="relative z-10 flex justify-between items-start">
-                <div className="text-left">
-                  <p className="text-xs uppercase tracking-widest font-semibold text-slate-500 mb-1">Today&apos;s Focus</p>
-                  <h3 className="text-xl font-bold text-slate-900">Strength &amp; Mobility</h3>
-                </div>
-                <div className="bg-white/80 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-medium text-primary shadow-sm">
-                  45 min
-                </div>
-              </div>
-              <div className="relative z-10 mt-auto pt-8 text-left">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="h-1 flex-1 bg-white/50 rounded-full overflow-hidden">
-                    <div className="h-full w-1/3 bg-primary rounded-full"></div>
-                  </div>
-                  <span className="text-xs font-medium text-slate-600">33%</span>
-                </div>
-                <p className="text-sm text-slate-600">AI adjusted intensity based on yesterday&apos;s recovery.</p>
-              </div>
+      <main>
+        <section className="mx-auto grid w-full max-w-6xl items-center gap-10 px-5 py-10 sm:px-8 sm:py-16 lg:grid-cols-[1.1fr_1fr] lg:gap-20">
+          <div className="min-w-0">
+            <h1 className="max-w-xl text-4xl font-bold leading-tight tracking-tight sm:text-5xl lg:text-6xl">Your next workout starts with a plan.</h1>
+            <p className="mt-6 max-w-lg text-lg leading-relaxed text-slate-600">Build a workout routine around your goals, your schedule, and the equipment you have. Keep your sessions and progress in one place.</p>
+            <div className="mt-8 flex flex-wrap gap-3">
+              <Link href="/auth/signup" className="rounded-full bg-primary px-6 py-3.5 font-semibold text-white hover:bg-blue-700">Create your plan</Link>
+              <Link href="/demo" className="rounded-full border border-slate-300 bg-white px-6 py-3.5 font-semibold hover:bg-slate-100">Explore the demo</Link>
+            </div>
+            <p className="mt-4 text-sm text-slate-500">Try an example workout without creating an account.</p>
+          </div>
+          <div className="min-w-0 rounded-3xl bg-accent-periwinkle p-5 sm:p-8">
+            <div className="rounded-2xl bg-white p-5 sm:p-7">
+              <div className="flex flex-wrap items-center justify-between gap-2"><p className="text-sm font-medium text-slate-500">Example workout</p><span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-primary">45 min</span></div>
+              <h2 className="mt-4 text-2xl font-bold">Full-body strength</h2>
+              <p className="mt-2 text-sm text-slate-500">A preview of how your sessions are organized.</p>
+              <ul className="mt-6 divide-y divide-slate-100">
+                {[['Goblet squat', '3 sets · 10 reps'], ['Dumbbell row', '3 sets · 10 reps'], ['Push-up', '3 sets · 8 reps']].map(([name, detail]) => <li key={name} className="flex flex-wrap items-center justify-between gap-2 py-4"><span className="font-medium">{name}</span><span className="text-sm text-slate-500">{detail}</span></li>)}
+              </ul>
+              <Link href="/demo" className="mt-5 inline-flex min-h-11 items-center text-sm font-semibold text-primary underline underline-offset-4">Open this example</Link>
             </div>
           </div>
-        </div>
-
-        {/* Features Section */}
-        <div className="px-6 pb-6 w-full">
-          <div className="flex items-center justify-between mb-4 px-2">
-            <h2 className="text-lg font-bold text-slate-900 tracking-tight">Intelligence</h2>
-            <span className="text-xs font-medium text-primary">Learn more</span>
-          </div>
-          <div className="flex overflow-x-auto scrollbar-hide gap-4 pb-4 -mx-6 px-6 snap-x">
-            <div className="snap-center shrink-0 w-[240px] p-5 rounded-2xl bg-accent-periwinkle/30 backdrop-blur-sm border border-white/50 shadow-sm text-left">
-              <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center mb-4 shadow-sm text-primary">
-                <span className="material-symbols-outlined">auto_fix_high</span>
-              </div>
-              <h3 className="text-slate-900 font-semibold text-base mb-1">AI Personalization</h3>
-              <p className="text-slate-500 text-sm leading-relaxed">Tailored to your biometrics and daily inputs.</p>
-            </div>
-            <div className="snap-center shrink-0 w-[240px] p-5 rounded-2xl bg-accent-lemon/40 backdrop-blur-sm border border-white/50 shadow-sm text-left">
-              <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center mb-4 shadow-sm text-yellow-600">
-                <span className="material-symbols-outlined">ecg_heart</span>
-              </div>
-              <h3 className="text-slate-900 font-semibold text-base mb-1">Real-time Progress</h3>
-              <p className="text-slate-500 text-sm leading-relaxed">Live adjustments as you move and breathe.</p>
-            </div>
-            <div className="snap-center shrink-0 w-[240px] p-5 rounded-2xl bg-slate-50 border border-slate-100 shadow-sm opacity-60 text-left">
-              <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center mb-4 shadow-sm text-slate-400">
-                <span className="material-symbols-outlined">bar_chart</span>
-              </div>
-              <h3 className="text-slate-900 font-semibold text-base mb-1">Analytics</h3>
-              <p className="text-slate-500 text-sm leading-relaxed">Deep dive into your performance data.</p>
-            </div>
-          </div>
-        </div>
+        </section>
+        <section aria-label="How WON works" className="mx-auto grid w-full max-w-6xl gap-8 px-5 py-10 sm:px-8 md:grid-cols-3 sm:py-14">
+          {features.map((feature) => <div key={feature.title}><h2 className="text-lg font-semibold">{feature.title}</h2><p className="mt-3 text-base leading-relaxed text-slate-600">{feature.text}</p></div>)}
+        </section>
+        <section className="mx-auto w-full max-w-6xl px-5 pb-14 sm:px-8"><div className="flex flex-col items-start justify-between gap-6 rounded-3xl bg-accent-seafoam p-6 sm:p-10 md:flex-row md:items-center"><div><h2 className="text-2xl font-bold">Make room for your next session.</h2><p className="mt-2 text-slate-600">Set your preferences and generate your first plan.</p></div><Link href="/auth/signup" className="shrink-0 rounded-full bg-primary px-6 py-3 font-semibold text-white hover:bg-blue-700">Get started</Link></div></section>
       </main>
-
-      <footer className="relative z-20 bg-accent-seafoam px-6 py-8 mt-auto rounded-t-[2.5rem]">
-        <div className="flex flex-col items-center text-center gap-6">
-          <div>
-            <h2 className="text-slate-900 text-2xl font-bold tracking-tight mb-2">Ready to begin?</h2>
-            <p className="text-slate-600 text-sm">Create an account or login to access WON.</p>
-          </div>
-
-          <div className="w-full max-w-sm flex flex-col gap-3">
-            <Link
-              href="/auth/signup"
-              className="w-full bg-primary hover:bg-blue-700 text-white font-medium text-lg py-4 rounded-full shadow-lg shadow-primary/20 transform active:scale-95 transition-all flex items-center justify-center gap-2 group"
-            >
-              <span>Get Started</span>
-              <span className="material-symbols-outlined group-hover:translate-x-1 transition-transform text-[20px]">arrow_forward</span>
-            </Link>
-
-            <Link
-              href="/auth/login"
-              className="w-full bg-white text-slate-900 border border-slate-200 font-medium text-lg py-4 rounded-full shadow-sm transform active:scale-95 transition-all flex items-center justify-center hover:bg-slate-50"
-            >
-              <span>Login</span>
-            </Link>
-          </div>
-          <p className="text-xs text-slate-400 font-medium">No credit card required for 14 days.</p>
-        </div>
-      </footer>
+      <footer className="mx-auto flex w-full max-w-6xl flex-wrap justify-between gap-3 px-5 py-6 text-sm text-slate-500 sm:px-8"><span>WON · Personal workout planning</span><Link href="/demo" className="underline underline-offset-4">View example workout</Link></footer>
     </div>
   );
 }

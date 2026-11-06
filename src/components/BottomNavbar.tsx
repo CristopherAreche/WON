@@ -7,7 +7,7 @@ export default function BottomNavbar() {
   const pathname = usePathname();
 
   return (
-    <nav className="fixed left-4 right-4 bg-surface-light/90 backdrop-blur-md rounded-2xl shadow-2xl border border-white/20 flex items-center justify-around px-1 py-3 z-50" style={{ bottom: 'max(16px, env(safe-area-inset-bottom, 16px))' }}>
+    <nav aria-label="Main navigation" className="fixed left-1/2 w-[calc(100%-2rem)] max-w-xl -translate-x-1/2 bg-surface-light/90 backdrop-blur-md rounded-2xl shadow-2xl border border-white/20 flex items-center justify-around px-1 py-3 z-50" style={{ bottom: 'max(16px, env(safe-area-inset-bottom, 16px))' }}>
       <Link href="/app/home" className={`flex flex-col items-center justify-center w-14 h-14 transition-transform active:scale-95 ${pathname === '/app/home' ? 'text-primary' : 'text-slate-400 hover:text-slate-600'}`}>
         <span className="material-icons-round text-2xl">home</span>
         <span className="text-[11px] font-medium mt-1">Home</span>
@@ -21,6 +21,7 @@ export default function BottomNavbar() {
       <div className="relative -top-6">
         <Link
           href="/app/generate"
+          aria-label="Generate a workout"
           className="bg-primary text-white h-14 w-14 rounded-2xl shadow-glow flex items-center justify-center transform transition-transform hover:scale-105 active:scale-95 border-4 border-background-light"
         >
           <span className="material-icons-round text-3xl">add</span>

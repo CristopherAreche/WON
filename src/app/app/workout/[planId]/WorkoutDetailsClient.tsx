@@ -542,11 +542,11 @@ export default function WorkoutDetailsClient({
   };
 
   return (
-    <div className="bg-black min-h-screen">
+    <div className="bg-background-light min-h-dvh">
       {/* Header */}
 
       {/* Workout Plan Info - Toggle List */}
-      <div className="max-w-md mx-auto px-4 py-6">
+      <div className="max-w-5xl mx-auto px-4 py-6">
         <div className="bg-white rounded-2xl shadow-lg overflow-hidden mb-6">
           {/* Toggle Header */}
           <button

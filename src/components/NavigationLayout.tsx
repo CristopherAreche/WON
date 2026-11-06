@@ -17,17 +17,11 @@ interface NavigationLayoutProps {
 
 export default function NavigationLayout({ children, user }: NavigationLayoutProps) {
   const pathname = usePathname();
-  const isGenerateRoute = pathname.startsWith("/app/generate");
-  const isWorkoutsRoute = pathname === "/app/workouts";
-
-  const contentClassName = isGenerateRoute
-    ? "flex-1 w-full px-4 sm:px-5 pb-28 pt-2 overflow-y-auto"
-    : isWorkoutsRoute
-      ? "flex-1 w-full max-w-md mx-auto px-4 pt-2 overflow-hidden"
-      : "flex-1 w-full max-w-md mx-auto px-4 pb-28 pt-2 overflow-y-auto";
+  const isFocusedRoute = pathname.startsWith("/app/generate") || pathname.startsWith("/app/profile") || pathname.startsWith("/app/change-password");
+  const contentClassName = `flex-1 w-full min-w-0 mx-auto px-4 sm:px-6 lg:px-8 pb-32 pt-2 ${isFocusedRoute ? "max-w-3xl" : "max-w-6xl"}`;
 
   return (
-    <div className="font-sans bg-background-light min-h-screen relative flex flex-col">
+    <div className="font-sans bg-background-light min-h-dvh relative flex flex-col">
       {/* Fixed Header */}
       <GlobalAppHeader
         userName={user.name}

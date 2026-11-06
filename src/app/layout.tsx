@@ -55,12 +55,12 @@ export default function RootLayout({
         />
       </head>
       <body
-        className={`${inter.variable} font-sans antialiased h-screen overflow-hidden flex flex-col`}
+        className={`${inter.variable} font-sans antialiased min-h-dvh bg-background-light`}
       >
         <Providers>
           <Suspense fallback={<div className="w-full py-2 bg-white border-b border-gray-200 h-16" />}>
           </Suspense>
-          <main className="flex-1 overflow-y-auto bg-white">{children}</main>
+          <div id="main-content" className="min-w-0">{children}</div>
         </Providers>
       </body>
     </html>
