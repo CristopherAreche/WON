@@ -57,3 +57,11 @@ The existing Vercel project is `won`; the separate backend project is `won-api`.
 - Verify public access to `/` and `/demo` in a signed-out browser. Verify sign-up, sign-in, account linking, onboarding, and plan generation separately before describing those flows as production-ready.
 
 No database migration is needed for responsive layouts or the public demo.
+
+### Progress history
+
+`/app/progress` loads completed sessions from the authenticated `/api/progress` bridge to won-api. Existing dated browser records for the current user's plans are imported once, preserving their IDs and dates. The account history is then the source for the weekly summary, calendar and session list, including sessions whose plan has been deleted.
+
+Completing a session writes to the account before confirming the change in the UI. Imports and pending retries are idempotent; failed requests retain a small browser outbox with stable IDs so a lost response cannot duplicate the workout. Exercise checkboxes and the current repeat-session state remain device-local; the synchronized history records completed sessions. Undated legacy checkbox state is not turned into fabricated historical activity.
+
+`/demo/progress` uses only clearly labeled fictional activity and never contacts the progress API or writes to the account.

@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
+import { startSessionAgain } from "@/lib/training-history";
+import { saveSessionToAccount } from "@/lib/training-history-sync";
 import { useRouter } from "next/navigation";
 import {
   clearWorkoutCompletedAt,
@@ -258,6 +260,9 @@ function ExerciseItem({
 
           {/* Completion Checkbox */}
           <button
+            type="button"
+            aria-label={`Mark ${currentExercise.name} as ${isCompleted ? "incomplete" : "complete"}`}
+            aria-pressed={isCompleted}
             onClick={onToggle}
             className={`w-8 h-8 rounded-full border-2 flex items-center justify-center transition-colors ${
               isCompleted
@@ -388,6 +393,8 @@ export default function WorkoutDetailsClient({
     type: "daily" | "all";
     sessionTitle?: string;
   }>({ isOpen: false, type: "daily" });
+  const [isSavingSession, setIsSavingSession] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [isProgressLoaded, setIsProgressLoaded] = useState(false);
 
   // Load saved exercise completion from localStorage on component mount
@@ -431,16 +438,33 @@ export default function WorkoutDetailsClient({
     }
   }, [exerciseSubstitutions, plan.id]);
 
-  const toggleExerciseCompletion = (
+  const toggleExerciseCompletion = async (
     sessionIndex: number,
     exerciseIndex: number
   ) => {
+    if (isSavingSession || !isProgressLoaded) return;
+    setIsSavingSession(true);
+    setSaveError(null);
     const key = `${sessionIndex}-${exerciseIndex}`;
     const newCompletion = {
       ...exerciseCompletion,
       [key]: !exerciseCompletion[key],
     };
     
+    const changedSession = plan.days.sessions[sessionIndex];
+    try {
+      await saveSessionToAccount({
+        planId: plan.id,
+        sessionIndex,
+        title: changedSession.title,
+        exercises: changedSession.items.length,
+      }, changedSession.items.length > 0 && changedSession.items.every((_, index) => newCompletion[`${sessionIndex}-${index}`]));
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : "Unable to save your session. Try again.");
+      return;
+    } finally {
+      setIsSavingSession(false);
+    }
     setExerciseCompletion(newCompletion);
 
     // Check if this session is now completed
@@ -511,6 +535,7 @@ export default function WorkoutDetailsClient({
   };
 
   const substituteExercise = (sessionIndex: number, exerciseIndex: number) => {
+    if (isSavingSession || !isProgressLoaded) return;
     const key = `${sessionIndex}-${exerciseIndex}`;
     const currentSubstitution = exerciseSubstitutions[key] || 0;
     
@@ -682,10 +707,13 @@ export default function WorkoutDetailsClient({
         </div>
 
         {/* Workout Sessions */}
-        <div className="space-y-4">
+        {saveError && <p role="alert" className="mb-4 rounded-xl bg-amber-50 p-4 text-sm text-amber-900">{saveError} We couldn’t confirm the last change. Retry the exercise to sync it safely.</p>}
+        {isSavingSession && <p role="status" className="mb-3 text-sm text-indigo-700">Saving progress to your account…</p>}
+        <fieldset disabled={isSavingSession || !isProgressLoaded} className="min-w-0 space-y-4 disabled:opacity-70">
+          <legend className="sr-only">Workout sessions</legend>
           {plan.days.sessions.map((session, index) => (
+            <div key={index}>
             <WorkoutSessionComponent
-              key={index}
               session={session}
               sessionIndex={index}
               isOpen={openSessions.has(index)}
@@ -696,8 +724,23 @@ export default function WorkoutDetailsClient({
               onSubstitute={substituteExercise}
               exerciseSubstitutions={exerciseSubstitutions}
             />
+            {session.items.length > 0 && session.items.every((_, exerciseIndex) => exerciseCompletion[`${index}-${exerciseIndex}`]) && (
+              <button
+                type="button"
+                className="mt-3 ml-2 text-sm font-medium text-indigo-700 underline underline-offset-4"
+                onClick={() => {
+                  startSessionAgain(plan.id, index);
+                  const next = { ...exerciseCompletion };
+                  session.items.forEach((_, exerciseIndex) => { delete next[`${index}-${exerciseIndex}`]; });
+                  setExerciseCompletion(next);
+                }}
+              >
+                Train this session again
+              </button>
+            )}
+            </div>
           ))}
-        </div>
+        </fieldset>
       </div>
 
       {/* Video Modal */}
