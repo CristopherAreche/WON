@@ -1,32 +1,17 @@
-"use client";
+import { redirect } from "next/navigation";
+import { fetchWonApiServerJson, type WonHomePayload } from "@/lib/won-api-server";
+import ProgressPageClient, { type ProgressPlan } from "./ProgressPageClient";
 
-import Link from "next/link";
+export default async function ProgressPage() {
+  const home = await fetchWonApiServerJson<WonHomePayload>("/api/user/home");
+  if (!home) redirect("/auth/login");
 
-export default function ProgressPage() {
-  return (
-    <div className="flex flex-col items-center justify-center min-h-[70vh] px-4 text-center animate-fade-in">
-      <div className="w-28 h-28 bg-surface-light text-indigo-500 rounded-full flex items-center justify-center mb-6 shadow-sm border border-slate-100 relative overflow-hidden">
-        {/* Decorative Grid Line */}
-        <div className="absolute inset-0 opacity-10 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:12px_12px]"></div>
-        <span className="material-icons-round text-7xl leading-none relative z-10 flex items-center justify-center w-full h-full">
-          monitoring
-        </span>
-      </div>
+  const plans: ProgressPlan[] = home.plans.map((plan) => ({
+    id: plan.id,
+    title: plan.summary.split || plan.summary.description || "Training plan",
+    daysPerWeek: plan.summary.daysPerWeek,
+    createdAt: plan.createdAt,
+  }));
 
-      <h1 className="font-serif text-3xl text-slate-900 leading-tight mb-3">
-        Track your <span className="text-indigo-500 italic">Progress</span><br />
-      </h1>
-
-      <p className="text-slate-500 max-w-xs mx-auto mb-8 text-sm">
-        Coming soon: real-time charts, personal records, and performance analytics to make steady progress visible.
-      </p>
-
-      <Link
-        href="/app/home"
-        className="bg-indigo-600 text-white font-medium px-6 py-3 rounded-full shadow-lg hover:bg-indigo-700 transition-colors shadow-indigo-600/20"
-      >
-        Back to Home
-      </Link>
-    </div>
-  );
+  return <ProgressPageClient plans={plans} weeklyGoal={home.onboardingBase?.daysPerWeek ?? null} />;
 }
